@@ -1,0 +1,11 @@
+.menu-nav {
+	width: 100px;
+}
+
+li {
+	list-style: none;
+}
+
+li img {
+	width: 100px;
+}

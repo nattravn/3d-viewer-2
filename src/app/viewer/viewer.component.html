@@ -1,0 +1,36 @@
+<ng-container *ngIf="{
+	posts: wordpressService.posts$ | async,
+	apiready: sketchfabService.apiready$ | async
+} as source">
+
+<div class="viewer" id="viewer">
+	<ul #postContainer *ngFor="let post of source.posts">
+		<li id="t-{{post.id}}" class="wp-post" >
+			post id: {{post.id}}
+			<div class="sketchfab-embed-wrapper">
+				<iframe id="api-frame-{{post.id}}" src="" frameborder="0" allowfullscreen="" mozallowfullscreen="true"></iframe>
+			</div>
+		</li>
+	</ul>
+</div>
+
+apiready: {{source.apiready | json}}
+
+<ul class="menu-nav">
+	<li *ngFor="let post of source.posts"  >
+		<img (click)="test()" src="{{baseUrl}}/wp-content/uploads/{{post.slug}}.png" alt="Description" >
+	</li>
+	<li>
+
+	</li>
+</ul>
+
+<p>
+  viewer works!
+</p>
+
+<app-menu></app-menu>
+
+<app-annotation-nav></app-annotation-nav>
+
+</ng-container>

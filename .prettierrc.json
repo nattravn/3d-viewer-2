@@ -1,0 +1,16 @@
+// Not used
+{
+	"useTabs": true,
+	"tabWidth": 4,
+	"printWidth": 500,
+	"trailingComma": "es5",
+	"htmlWhitespaceSensitivity": "ignore",
+	"overrides": [
+	  {
+		"files": "*.html",
+		"options": {
+		  "parser": "angular"
+		}
+	  }
+	]
+}

@@ -1,25 +1,109 @@
+// https://dev.to/eneajaho/configure-prettier-and-eslint-with-angular-526c
+// https://stackoverflow.com/questions/44690308/whats-the-difference-between-prettier-eslint-eslint-plugin-prettier-and-eslint
+// https://awesomejs.dev/for/eslint/pkg/253365902170391042/
+// You can not have any warnings/errors to get linting to work!!
 {
-    "env": {
-        "browser": true,
-        "es2021": true
-    },
-    "extends": [
-        "eslint:recommended",
-        "plugin:@typescript-eslint/recommended"
-    ],
-    "overrides": [
-    ],
-    "parser": "@typescript-eslint/parser",
-    "parserOptions": {
-        "ecmaVersion": "latest",
-        "sourceType": "module"
-    },
-    "plugins": [
-        "@typescript-eslint"
-    ],
-    "rules": {
-        // "semi": ["warn", "always"],
-        // "quotes": ["warn", "double"],
-        // "indent": ["warn", "tab"]
-    }
+	"root": true,
+	"ignorePatterns": ["projects/**/*"],
+	"overrides": [
+		{
+			"files": ["*.ts"],
+			"parserOptions": {
+				"project": [
+					"tsconfig.json",
+					"tsconfig.*?.json"
+				],
+				"createDefaultProgram": true
+			},
+			"extends": [
+				// säger ifrån om let/var/const
+				"plugin:@typescript-eslint/recommended",
+				// För att kunna sätta regeler på import
+				"plugin:import/recommended",
+				"plugin:@angular-eslint/recommended",
+  				"plugin:@angular-eslint/template/process-inline-templates",
+				// Formatering, semikolon, sigle quote, trailin comma
+  				"airbnb-typescript/base"
+  				// Settings for Prettier
+ 	 			//"plugin:prettier/recommended"
+				//"prettier"
+			],
+			"rules": {
+				/**
+				 * Any TypeScript source code (NOT TEMPLATE) related rules you wish to use/reconfigure over and above the
+				 * recommended set provided by the @angular-eslint project would go here.
+				 */
+				"@angular-eslint/directive-selector": [
+					"error",
+					{
+						"type": "attribute",
+						"prefix": "app",
+						"style": "camelCase"
+					}
+				],
+				"@angular-eslint/component-selector": [
+					"error",
+					{
+						"type": "element",
+						"prefix": "app",
+						"style": "kebab-case"
+					}
+				],
+				"import/no-unresolved": "off",
+				"import/prefer-default-export": "off",
+				"class-methods-use-this": "off",
+				"lines-between-class-members": "off",
+				"@typescript-eslint/unbound-method": [
+					"error",
+					{
+						"ignoreStatic": true
+					}
+				],
+				"@typescript-eslint/indent": ["error", "tab"]
+				//"quotes": ["warn", "double"],
+				//"comma-dangle": [2, "always-multiline"],
+				//"comma-dangle": ["error", "always"],
+				// "no-extra-semi": ["error"],
+				// "indent": ["error", "tab"]
+				// "useTabs": 0
+				//"indent": ["error", 4]
+				// "singleQuote": true,
+				// "semi": 1,
+				// "bracketSpacing": true,
+				// "arrowParens": "avoid",
+				// "trailingComma": "es5",
+				// "bracketSameLine": true,
+				// "printWidth": 80,
+				// "endOfLine": "auto"
+				//"quotes": [2, "single", { "avoidEscape": true }]
+				// "prettier/prettier": [
+				// 	"error",
+				// 	{
+				// 		"endOfLine": "auto"
+				// 	}
+				// ]
+			}
+		},
+		{
+			// NOTE: WE ARE NOT APPLYING PRETTIER IN THIS OVERRIDE, ONLY @ANGULAR-ESLINT/TEMPLATE
+			"files": ["*.html"],
+			"extends": ["plugin:@angular-eslint/template/recommended"],
+			"rules": {
+				/**
+				 * Any template/HTML related rules you wish to use/reconfigure over and above the
+				 * recommended set provided by the @angular-eslint project would go here.
+				 */
+			}
+		},
+		// NOTE: WE ARE NOT APPLYING @ANGULAR-ESLINT/TEMPLATE IN THIS OVERRIDE, ONLY PRETTIER
+		{
+			"files": ["*.html"],
+			"excludedFiles": ["*inline-template-*.component.html"],
+			"extends": ["plugin:prettier/recommended"],
+			"rules": {
+				// NOTE: WE ARE OVERRIDING THE DEFAULT CONFIG TO ALWAYS SET THE PARSER TO ANGULAR (SEE BELOW)
+				"prettier/prettier": ["error", { "parser": "angular" }]
+			}
+		}
+	]
 }
