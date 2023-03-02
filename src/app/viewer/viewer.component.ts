@@ -3,7 +3,7 @@ import { WordpressService } from '../services/wordpress.service';
 //import * as Sketchfab from 'src/sketchfab-viewer-1.12.1';
 //import * as Sketchfab2 from '@sketchfab/viewer-api/index'
 import { SketchfabService } from '../services/sketchfab.service';
-import { combineLatest, delay, filter, Observable, of, ReplaySubject, switchMap } from 'rxjs';
+import { BehaviorSubject, combineLatest, delay, filter, map, Observable, of, ReplaySubject, switchMap } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { WpModel } from '../models/wp-model';
 
@@ -61,9 +61,9 @@ export class ViewerComponent implements OnInit {
 
 	private _cameraTarget: Array<number[][]> = [];
 
-	safeHtml: SafeHtml;
-
 	private _viewers: Array<SketchfabService> = [];
+
+	public viewersReady$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
 
 
 	constructor(
@@ -77,55 +77,56 @@ export class ViewerComponent implements OnInit {
 
 	ngOnInit(): void {
 		// https://stackblitz.com/edit/rxjs-5-progress-bar-wxdxwe?devtoolsheight=50&file=index.ts
-		const sketchfabServiceArray$: Array<Observable<SketchfabService> | ReplaySubject<boolean>> = [];
 
-		this.wordpressService.getPosts().pipe(
+
+		this.wordpressService.getPostsLocalHttpRequest().pipe(
 			delay(1),
 			switchMap((posts: WpModel[]) => {
+				const sketchfabServiceArray$: Array<Observable<SketchfabService>> = [];
+
 				posts.forEach((post, i) => {
 					const sketchfabService = this.initWPpostData(post, i);
 					sketchfabServiceArray$.push(of(sketchfabService));
-					sketchfabServiceArray$.push(sketchfabService.apiready$);
 				});
 
 				return combineLatest(
 					sketchfabServiceArray$,
-				).pipe(
-					filter((apiStatesAndServices) => {
-						// Wait foe api to be ready
-						const continue1: Array<boolean> = [];
-						apiStatesAndServices.forEach(apiStatesAndService => !!apiStatesAndService ? continue1.push(true) : []);
-
-						if (continue1.length == apiStatesAndServices.length && continue1.every(elem => elem === true)) {
-							return true;
-						} else {
-							return false;
-						}
-					}),
-					switchMap(apiStatesAndServices => {
-						// Remove apiready from array
-						const viewers = apiStatesAndServices.filter((e: any) => typeof e  !== 'boolean');
-						return of(viewers);
-					}),
 				);
 			}),
-			switchMap((viewers: any) => {
+			switchMap(sketchfabServiceArray => {
+				const apireadyArray$: Array<Observable<boolean>> = [];
+
+				sketchfabServiceArray.forEach((sketchfabService) => {
+					apireadyArray$.push(sketchfabService.apiready$);
+				});
+
+				return combineLatest(
+					apireadyArray$,
+				).pipe(
+					filter((apireadyArray) => {
+						return apireadyArray.every(elem => elem) ? true : false;
+					}),
+					map(() => sketchfabServiceArray),
+				);
+			}),
+			switchMap((viewers: SketchfabService[]) => {
 				// start next viewer after the prevous ar done (serially)
 				viewers[0].api2.start();
 				viewers.forEach((viewer: any, i: number)=> {
 					viewer.api2.addEventListener( 'viewerready', () => {
 						viewer.api2.start();
 						if (i < viewers.length - 1 ) {
+							this.viewersReady$.next(i + 1);
 							viewers[i + 1].api2.start();
+						} else {
+							this.viewersReady$.next(i + 1);
 						}
 					});
 				});
 
 				return viewers;
 			}),
-		).subscribe(x => {
-			console.log('x: ', x)
-		});
+		).subscribe();
 
 	}
 
@@ -141,7 +142,6 @@ export class ViewerComponent implements OnInit {
 		div.innerHTML = post.content.rendered.trim();
 
 		const uid = post.post_meta_fields.model_id;
-
 
 		// Todo target this in a better way
 		this._helpTextSwe = post.post_meta_fields.swe_help_text;

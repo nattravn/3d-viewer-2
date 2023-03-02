@@ -7,6 +7,7 @@ import { SketchfabService } from '../services/sketchfab.service';
 import { WordpressService } from '../services/wordpress.service';
 import { HttpClientModule } from '@angular/common/http';
 import { SafeHtmlPipe } from '../pipes/safe-html.pipe';
+import { FallbackImgDirective } from '../directives/my-directive.directive';
 
 
 @NgModule({
@@ -19,6 +20,7 @@ import { SafeHtmlPipe } from '../pipes/safe-html.pipe';
 		MenuComponent,
 		AnnotationNavComponent,
 		SafeHtmlPipe,
+		FallbackImgDirective,
 	],
 	providers: [
 		SketchfabService,

@@ -1,6 +1,8 @@
 <ng-container *ngIf="{
 	posts: wordpressService.posts$ | async,
-	apiready: sketchfabService.apiready$ | async
+	apiready: sketchfabService.apiready$ | async,
+	postMetaFields: wordpressService.postMetaFields$ | async,
+	viewersReady: viewersReady$ | async
 } as source">
 
 <div class="viewer" id="viewer">
@@ -14,11 +16,19 @@
 	</ul>
 </div>
 
-apiready: {{source.apiready | json}}
+Number of: {{source.posts?.length | json}}
+viewersReady: {{source.viewersReady | json}}
+
+
+<ng-container *ngIf= source.postMetaFields >
+	postMetaFields: <pre>{{source.postMetaFields[1] | json}}</pre>
+</ng-container>
+
 
 <ul class="menu-nav">
 	<li *ngFor="let post of source.posts"  >
-		<img (click)="test()" src="{{baseUrl}}/wp-content/uploads/{{post.slug}}.png" alt="Description" >
+		<img (click)="test()" src="{{baseUrl}}/wp-content/uploads/{{post.slug}}.png" fallback="../../assets/{{post.slug}}.png" alt="{{baseUrl}}/wp-content/uploads/{{post.slug}}.png" >
+
 	</li>
 	<li>
 

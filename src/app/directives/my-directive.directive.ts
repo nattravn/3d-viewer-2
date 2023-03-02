@@ -1,10 +1,18 @@
-import { Directive } from '@angular/core';
+import { Directive, Input, HostBinding, HostListener } from '@angular/core';
 
 @Directive({
-  selector: '[appMyDirective]'
+	selector: 'img[fallback]',
 })
-export class MyDirectiveDirective {
+export class FallbackImgDirective {
+	@Input()
+	@HostBinding('src')
+		src: string;
 
-  constructor() { }
+	@Input() fallback: string;
+
+	@HostListener('error')
+	onError() {
+		this.src = this.fallback;
+	}
 
 }
