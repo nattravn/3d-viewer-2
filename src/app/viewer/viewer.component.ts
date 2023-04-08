@@ -5,13 +5,14 @@ import { WordpressService } from '../services/wordpress.service';
 import { SketchfabService } from '../services/sketchfab.service';
 import { BehaviorSubject, combineLatest, delay, filter, map, Observable, of, ReplaySubject, switchMap } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { WpModel } from '../models/wp-model';
+import { WpModel } from '../models/wp-mode.modell';
+import { PostMetaFields } from '../models/post-meta-fields';
 
 
 @Component({
 	selector: 'app-viewer',
 	templateUrl: './viewer.component.html',
-	styleUrls: ['./viewer.component.css'],
+	styleUrls: ['./viewer.component.scss'],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ViewerComponent implements OnInit {
@@ -63,8 +64,17 @@ export class ViewerComponent implements OnInit {
 
 	private _viewers: Array<SketchfabService> = [];
 
-	public viewersReady$: BehaviorSubject<number> = new BehaviorSubject<number>(0);
+	public viewersReady$: BehaviorSubject<string> = new BehaviorSubject<string>('Loading iframes');
 
+	public infoBlockIsVisible = false;
+
+	public selectedModel = 0;
+
+	public nextModel = 0;
+
+	public selectedAnnotation = 0;
+
+	public sketchfabServices$: Array<Observable<SketchfabService>> = [];
 
 	constructor(
 		public wordpressService: WordpressService,
@@ -79,24 +89,23 @@ export class ViewerComponent implements OnInit {
 		// https://stackblitz.com/edit/rxjs-5-progress-bar-wxdxwe?devtoolsheight=50&file=index.ts
 
 
-		this.wordpressService.getPostsLocalHttpRequest().pipe(
+		this.wordpressService.getPostsFromWp().pipe(
 			delay(1),
 			switchMap((posts: WpModel[]) => {
-				const sketchfabServiceArray$: Array<Observable<SketchfabService>> = [];
 
 				posts.forEach((post, i) => {
 					const sketchfabService = this.initWPpostData(post, i);
-					sketchfabServiceArray$.push(of(sketchfabService));
+					this.sketchfabServices$.push(of(sketchfabService));
 				});
 
 				return combineLatest(
-					sketchfabServiceArray$,
+					this.sketchfabServices$,
 				);
 			}),
-			switchMap(sketchfabServiceArray => {
+			switchMap(sketchfabServices => {
 				const apireadyArray$: Array<Observable<boolean>> = [];
 
-				sketchfabServiceArray.forEach((sketchfabService) => {
+				sketchfabServices.forEach((sketchfabService) => {
 					apireadyArray$.push(sketchfabService.apiready$);
 				});
 
@@ -106,20 +115,21 @@ export class ViewerComponent implements OnInit {
 					filter((apireadyArray) => {
 						return apireadyArray.every(elem => elem) ? true : false;
 					}),
-					map(() => sketchfabServiceArray),
+					map(() => sketchfabServices),
 				);
 			}),
 			switchMap((viewers: SketchfabService[]) => {
 				// start next viewer after the prevous ar done (serially)
-				viewers[0].api2.start();
+				this.viewersReady$.next(`Models loading: 0/${viewers.length} loaded`);
+				viewers[0].api.start();
 				viewers.forEach((viewer: any, i: number)=> {
-					viewer.api2.addEventListener( 'viewerready', () => {
-						viewer.api2.start();
-						if (i < viewers.length - 1 ) {
-							this.viewersReady$.next(i + 1);
-							viewers[i + 1].api2.start();
+					viewer.api.addEventListener('viewerready', () => {
+						viewer.api.start();
+						if (i < viewers.length - 1) {
+							this.viewersReady$.next(`Models loading: ${i + 1}/${viewers.length} loaded`);
+							viewers[i + 1].api.start();
 						} else {
-							this.viewersReady$.next(i + 1);
+							this.viewersReady$.next(`Models loading: ${i + 1}/${viewers.length} loaded`);
 						}
 					});
 				});
@@ -127,7 +137,6 @@ export class ViewerComponent implements OnInit {
 				return viewers;
 			}),
 		).subscribe();
-
 	}
 
 	private initWPpostData(post: any, index: number): SketchfabService {
@@ -178,15 +187,99 @@ export class ViewerComponent implements OnInit {
 
 		const iframe = document.getElementById(`api-frame-${post.id}`);
 
-
 		this._viewers.push(new SketchfabService());
+
 		const c = this._viewers[index].init(iframe, uid, annotationBounds, 0);
 
 		return this._viewers[index];
 	}
 
-	public test() {
-		console.log("log")
+	public selectModel(selectedModel: number, sketchfabServicePrev: SketchfabService, sketchfabServiceNext: SketchfabService) {
+
+
+		this.selectedAnnotation = 0;
+
+		sketchfabServicePrev.setLDtexture(
+			function (readyTexture: any) {
+				console.log('response: ', readyTexture);
+				// remove loading bar and loadTextureLayer
+				if (readyTexture) {
+					setTimeout(()=>{
+						//viewer.removeChild(loading);
+						//viewer.removeChild(loadTextureLayer);
+					}, 1000);
+				}
+			},
+		);
+
+		this.selectedModel = selectedModel;
+
+		sketchfabServiceNext.setHDtexture(
+			function (readyTexture: any) {
+				console.log('response: ', readyTexture);
+				// remove loading bar and loadTextureLayer
+				if (readyTexture) {
+					setTimeout(()=>{
+						//viewer.removeChild(loading);
+						//viewer.removeChild(loadTextureLayer);
+					}, 1000);
+				}
+			},
+		);
+	}
+
+	public showInfoBlock(infoBlockIsVisible: boolean): void {
+		this.infoBlockIsVisible = infoBlockIsVisible ? false : true;
+	}
+
+	public previousAnnotation(selectedModel: number, post_meta_fields: PostMetaFields, sketchfabService: SketchfabService): void {
+		if (this.selectedAnnotation > 0) {
+			this.selectedAnnotation--;
+		}
+		sketchfabService.nextAnnotation(post_meta_fields.camera_position[this.selectedAnnotation], post_meta_fields.camera_target[this.selectedAnnotation], sketchfabService.api);
+	}
+
+	public nextAnnotation(postsLength: number, selectedModel: number, post_meta_fields: PostMetaFields, sketchfabService: SketchfabService): void {
+		if (!sketchfabService) {
+			return;
+		}
+
+		if (this.selectedAnnotation < postsLength) {
+			this.selectedAnnotation++;
+		}
+		sketchfabService.nextAnnotation(
+			post_meta_fields.camera_position[this.selectedAnnotation],
+			post_meta_fields.camera_target[this.selectedAnnotation],
+			sketchfabService.api,
+		);
+	}
+
+
+	public resetModel(selectedModel: number, modelChanged: boolean, lightStates: Array<number[]> | null) {
+
+		if (!lightStates) {
+			return;
+		}
+		this.selectedAnnotation = 0;
+		// firstAnnotation(_currentAnnotation);
+
+		// _currentModelElm = document.getElementById(_currentModel);
+
+		// // if user just want to reset the cam, modelChange is false
+		// if(!modelChanged ){
+		// 	_viewers[_currentModel].spinning = false;
+		// }
+		// if(_currentModelElm.contains(_standbyLayers[_currentModel]) && !modelChanged){
+		// 	ctrl.currentIframeElm = document.getElementById(_currentModel);
+		// 	ctrl.currentIframeElm.removeChild(_standbyLayers[_currentModel]);
+		// }
+
+		// reset light positions
+
+		this._viewers[selectedModel].setLights(lightStates);
+
+		// if modelChanged is true use animation time
+		this._viewers[selectedModel].setInitCameraPos(true, selectedModel, [0, 0, 0], [0, 0, 0]);
 	}
 
 	/**

@@ -4,7 +4,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 import { Observable, of, ReplaySubject, shareReplay, switchMap } from 'rxjs';
 import { PostMetaFields } from '../models/post-meta-fields';
-import { WpModel } from '../models/wp-model';
+import { WpModel } from '../models/wp-mode.modell';
 import * as testData from '../../assets/testData.json';
 
 
@@ -24,7 +24,7 @@ export class WordpressService {
 		private http: HttpClient,
 	) { }
 
-	public getPosts(): Observable<WpModel[]> {
+	public getPostsFromWp(): Observable<WpModel[]> {
 		this.posts$ = this.http.get<WpModel[]>(this.apiEndpoint).pipe(
 			untilDestroyed(this),
 			switchMap(posts => {

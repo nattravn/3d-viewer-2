@@ -2,45 +2,81 @@
 	posts: wordpressService.posts$ | async,
 	apiready: sketchfabService.apiready$ | async,
 	postMetaFields: wordpressService.postMetaFields$ | async,
-	viewersReady: viewersReady$ | async
+	viewersReady: viewersReady$ | async,
+	lightStates: sketchfabService.lightStates$ | async,
+	sketchfabService: sketchfabServices$[selectedModel] | async
 } as source">
+	<div *ngIf="source.posts">
+		<div class="viewer" id="viewer">
+			<ul #postContainer *ngFor="let post of source.posts">
+				<li id="t-{{post.id}}" class="wp-post" >
+					post id: {{post.id}}
+					<div class="sketchfab-embed-wrapper">
+						<iframe id="api-frame-{{post.id}}" src="" frameborder="0" allowfullscreen="" mozallowfullscreen="true"></iframe>
+					</div>
+				</li>
+			</ul>
+		</div>
 
-<div class="viewer" id="viewer">
-	<ul #postContainer *ngFor="let post of source.posts">
-		<li id="t-{{post.id}}" class="wp-post" >
-			post id: {{post.id}}
-			<div class="sketchfab-embed-wrapper">
-				<iframe id="api-frame-{{post.id}}" src="" frameborder="0" allowfullscreen="" mozallowfullscreen="true"></iframe>
+		Number of: {{source.posts.length | json}}
+		viewersReady: {{source.viewersReady | json}}
+
+		<br/>
+		Selected model: {{selectedModel}}
+		<br/>
+		Texture quality: {{source.sketchfabService?.texturQuality}}
+
+		<ng-container *ngIf= source.posts >
+			postMetaFields: <pre>{{source.posts[0].post_meta_fields.image_url | json}}</pre>
+		</ng-container>
+
+
+		<ul class="menu-nav">
+			<li *ngFor="let post of source.posts; let i = index"  >
+				<ng-container *ngIf="{sketchfabServiceNext: sketchfabServices$[i] | async} as source2">
+					<img *ngIf="source2.sketchfabServiceNext && source.sketchfabService" (click)="selectModel(i, source.sketchfabService, source2.sketchfabServiceNext)" src="{{post.post_meta_fields.image_url}}" fallback="../../assets/{{post.slug}}.png" alt="{{baseUrl}}/wp-content/uploads/{{post.slug}}.png" >
+				</ng-container>
+			</li>
+			<li>
+				<img (click)="resetModel(selectedModel, false, source.lightStates)" src="../../assets/reset.png" alt="">
+			</li>
+			<li class="infoButton">
+				<div class="label" (click)="showInfoBlock(infoBlockIsVisible)">i</div>
+			</li>
+			<li class="infoButton">
+				<div class="label" (click)="null">?</div>
+			</li>
+		</ul>
+		infoBlockIsVisible: {{infoBlockIsVisible}}
+		<p>
+		viewer works!
+		</p>
+
+		<div *ngIf="infoBlockIsVisible && source.sketchfabService" class="info-block">
+			info
+			<div>
+				{{source.posts[selectedModel].post_meta_fields.swe_description[selectedAnnotation]}}
 			</div>
-		</li>
-	</ul>
-</div>
+			<span (click)="previousAnnotation(selectedModel, source.posts[selectedModel].post_meta_fields, source.sketchfabService)">
+				prev
+			</span>
 
-Number of: {{source.posts?.length | json}}
-viewersReady: {{source.viewersReady | json}}
+			<span (click)="showInfoBlock(infoBlockIsVisible)">
+				x
+			</span>
 
+			<span (click)="nextAnnotation(
+				source.posts.length,
+				selectedModel,
+				source.posts[selectedModel].post_meta_fields,
+				source.sketchfabService)">
+				next
+			</span>
+		</div>
 
-<ng-container *ngIf= source.postMetaFields >
-	postMetaFields: <pre>{{source.postMetaFields[1] | json}}</pre>
-</ng-container>
+		<app-menu></app-menu>
 
-
-<ul class="menu-nav">
-	<li *ngFor="let post of source.posts"  >
-		<img (click)="test()" src="{{baseUrl}}/wp-content/uploads/{{post.slug}}.png" fallback="../../assets/{{post.slug}}.png" alt="{{baseUrl}}/wp-content/uploads/{{post.slug}}.png" >
-
-	</li>
-	<li>
-
-	</li>
-</ul>
-
-<p>
-  viewer works!
-</p>
-
-<app-menu></app-menu>
-
-<app-annotation-nav></app-annotation-nav>
+		<app-annotation-nav></app-annotation-nav>
+	</div>
 
 </ng-container>

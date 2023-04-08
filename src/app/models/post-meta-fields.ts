@@ -1,6 +1,12 @@
 export class PostMetaFields {
 	public model_id: string;
 
+	public image_url: string;
+
+	public image_id: number;
+
+	public image_filename: string;
+
 	public _edit_last: number;
 
 	public swe_description: string[];
