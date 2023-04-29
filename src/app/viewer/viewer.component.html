@@ -4,15 +4,19 @@
 	postMetaFields: wordpressService.postMetaFields$ | async,
 	viewersReady: viewersReady$ | async,
 	lightStates: sketchfabService.lightStates$ | async,
+	allLoaded: allLoaded$ | async,
 	sketchfabService: sketchfabServices$[selectedModel] | async
 } as source">
 	<div *ngIf="source.posts">
 		<div class="viewer" id="viewer">
-			<ul #postContainer *ngFor="let post of source.posts">
-				<li id="t-{{post.id}}" class="wp-post" >
+			<ul #iframeContainer >
+				<li *ngFor="let post of source.posts; let i = index" id="t-{{post.id}}" class="wp-post" >
 					post id: {{post.id}}
-					<div class="sketchfab-embed-wrapper">
-						<iframe id="api-frame-{{post.id}}" src="" frameborder="0" allowfullscreen="" mozallowfullscreen="true"></iframe>
+					<div id="api-frame-wrapper-{{post.id}}" class="sketchfab-embed-wrapper">
+						<ng-container *ngIf="{texturQuality: source.sketchfabService?.texturQuality$ | async} as source3">
+							<div *ngIf="source.allLoaded && source3.texturQuality == 'HD' && selectedModel == i" class="spinner"></div>
+							<iframe id="api-frame-{{post.id}}" src="" frameborder="0" allowfullscreen="" mozallowfullscreen="true"></iframe>
+						</ng-container>
 					</div>
 				</li>
 			</ul>
@@ -24,6 +28,7 @@
 		<br/>
 		Selected model: {{selectedModel}}
 		<br/>
+
 		Texture quality: {{source.sketchfabService?.texturQuality}}
 
 		<ng-container *ngIf= source.posts >
@@ -31,14 +36,15 @@
 		</ng-container>
 
 
-		<ul class="menu-nav">
+		<ul class="menu-nav" *ngIf="source.sketchfabService">
 			<li *ngFor="let post of source.posts; let i = index"  >
 				<ng-container *ngIf="{sketchfabServiceNext: sketchfabServices$[i] | async} as source2">
-					<img *ngIf="source2.sketchfabServiceNext && source.sketchfabService" (click)="selectModel(i, source.sketchfabService, source2.sketchfabServiceNext)" src="{{post.post_meta_fields.image_url}}" fallback="../../assets/{{post.slug}}.png" alt="{{baseUrl}}/wp-content/uploads/{{post.slug}}.png" >
+					Texture quality: {{source2.sketchfabServiceNext?.texturQuality$ | async}}
+					<img *ngIf="source2.sketchfabServiceNext && source.sketchfabService" (click)="selectModel(i, source.posts[i].id, source.sketchfabService, source2.sketchfabServiceNext)" src="{{post.post_meta_fields.image_url}}" fallback="../../assets/{{post.slug}}.png" alt="{{baseUrl}}/wp-content/uploads/{{post.slug}}.png" >
 				</ng-container>
 			</li>
 			<li>
-				<img (click)="resetModel(selectedModel, false, source.lightStates)" src="../../assets/reset.png" alt="">
+				<img (click)="resetModel(selectedModel, false, source.sketchfabService.lightStates , source.sketchfabService)" src="../../assets/reset.png" alt="">
 			</li>
 			<li class="infoButton">
 				<div class="label" (click)="showInfoBlock(infoBlockIsVisible)">i</div>

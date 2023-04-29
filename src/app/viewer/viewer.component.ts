@@ -3,7 +3,7 @@ import { WordpressService } from '../services/wordpress.service';
 //import * as Sketchfab from 'src/sketchfab-viewer-1.12.1';
 //import * as Sketchfab2 from '@sketchfab/viewer-api/index'
 import { SketchfabService } from '../services/sketchfab.service';
-import { BehaviorSubject, combineLatest, delay, filter, map, Observable, of, ReplaySubject, switchMap } from 'rxjs';
+import { BehaviorSubject, combineLatest, delay, filter, finalize, interval, map, Observable, of, ReplaySubject, Subject, Subscription, switchMap, take, takeUntil, takeWhile, tap } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { WpModel } from '../models/wp-mode.modell';
 import { PostMetaFields } from '../models/post-meta-fields';
@@ -18,6 +18,8 @@ import { PostMetaFields } from '../models/post-meta-fields';
 export class ViewerComponent implements OnInit {
 
 	@ViewChild('postContainer') postContainer: ElementRef;
+
+	@ViewChild('iframeContainer') iframeContainerRef: ElementRef;
 
 	public readonly baseUrl = 'http://localhost:8080/wordpress/';
 
@@ -66,6 +68,10 @@ export class ViewerComponent implements OnInit {
 
 	public viewersReady$: BehaviorSubject<string> = new BehaviorSubject<string>('Loading iframes');
 
+	public allLoaded$ = new Subject<boolean>();
+
+	public allLoaded = false;
+
 	public infoBlockIsVisible = false;
 
 	public selectedModel = 0;
@@ -75,6 +81,12 @@ export class ViewerComponent implements OnInit {
 	public selectedAnnotation = 0;
 
 	public sketchfabServices$: Array<Observable<SketchfabService>> = [];
+
+	public selectedSketchfabService$ = new ReplaySubject<SketchfabService>(1);
+
+	subscription: Subscription;
+
+	private destroy$ = new Subject<void>();
 
 	constructor(
 		public wordpressService: WordpressService,
@@ -88,9 +100,9 @@ export class ViewerComponent implements OnInit {
 	ngOnInit(): void {
 		// https://stackblitz.com/edit/rxjs-5-progress-bar-wxdxwe?devtoolsheight=50&file=index.ts
 
-
 		this.wordpressService.getPostsFromWp().pipe(
 			delay(1),
+			take(1),
 			switchMap((posts: WpModel[]) => {
 
 				posts.forEach((post, i) => {
@@ -118,25 +130,69 @@ export class ViewerComponent implements OnInit {
 					map(() => sketchfabServices),
 				);
 			}),
+			takeUntil(this.allLoaded$),
 			switchMap((viewers: SketchfabService[]) => {
-				// start next viewer after the prevous ar done (serially)
+				// start next viewer after the previous ar done (serially)
 				this.viewersReady$.next(`Models loading: 0/${viewers.length} loaded`);
 				viewers[0].api.start();
+				viewers[0].setHDtexture((readyTexture: any) => { });
+
+				this.selectedSketchfabService$.next(viewers[0]);
 				viewers.forEach((viewer: any, i: number)=> {
 					viewer.api.addEventListener('viewerready', () => {
-						viewer.api.start();
+						//viewer.api.start();
 						if (i < viewers.length - 1) {
 							this.viewersReady$.next(`Models loading: ${i + 1}/${viewers.length} loaded`);
 							viewers[i + 1].api.start();
 						} else {
+							console.log("all done");
+							this.allLoaded = true;
+							this.allLoaded$.next(true);
+							this.allLoaded$.complete();
 							this.viewersReady$.next(`Models loading: ${i + 1}/${viewers.length} loaded`);
 						}
 					});
 				});
+				return of(false);
 
-				return viewers;
+			}),
+			finalize(() => {
+				console.log("all done");
 			}),
 		).subscribe();
+
+		// Do the spinning
+		interval(1000).pipe(
+			takeUntil(this.destroy$),
+			switchMap(() => this.selectedSketchfabService$),
+			map(selectedSketchfabService => {
+				if (!selectedSketchfabService.cameraIsMoving && selectedSketchfabService.timer > 10) {
+					selectedSketchfabService.setLights(selectedSketchfabService.lightStates);
+
+					selectedSketchfabService.setInitCameraPos(true, 0, selectedSketchfabService.camera.positionInit, selectedSketchfabService.camera.targetInit, selectedSketchfabService.api, (err: boolean) => {
+						console.log("error: ", err);
+						if (!err) {
+							console.log("start rotating");
+							selectedSketchfabService.updateRotation(0, selectedSketchfabService.rootMatrixNodeId, selectedSketchfabService.api);
+						}
+					});
+
+					//setTimeout(() => {
+					//	selectedSketchfabService.updateRotation(0, selectedSketchfabService.rootMatrixNodeId, selectedSketchfabService.api);
+					//}, 5 * 1000 + 2000); // reset time for setInitCameraPos (reset view (5s) and rotate to init position (2s))
+				} else {
+					// Do nothing
+				}
+				selectedSketchfabService.timer++;
+				return selectedSketchfabService.timer;
+			}),
+		).subscribe();
+	}
+
+	ngOnDestroy() {
+		this.subscription.unsubscribe();
+		this.destroy$.next();
+   		this.destroy$.complete();
 	}
 
 	private initWPpostData(post: any, index: number): SketchfabService {
@@ -194,38 +250,52 @@ export class ViewerComponent implements OnInit {
 		return this._viewers[index];
 	}
 
-	public selectModel(selectedModel: number, sketchfabServicePrev: SketchfabService, sketchfabServiceNext: SketchfabService) {
+	public selectModel(selectedModel: number, postId: number, sketchfabServicePrev: SketchfabService, sketchfabServiceNext: SketchfabService) {
 
+		console.log("iframeContainerRef: ", this.iframeContainerRef.nativeElement);
+
+		const iframeWrapper = this.iframeContainerRef.nativeElement.querySelector(`#api-frame-wrapper-${postId}`);
+
+		//const viewer = document.getElementById(`api-frame-${postId}`);
+
+		// append loading bar for texture-loading
+		const loading = document.createElement('div');
+		const loadTextureLayer = document.createElement('div');
+
+		loading.className = 'spinner';
+		loadTextureLayer.className = 'load-texture-layer';
+
+		console.log("iframe: ", iframeWrapper);
+		console.log("selectedModel: ", postId);
+		if (iframeWrapper) {
+			iframeWrapper.appendChild(loading);
+			iframeWrapper.appendChild(loadTextureLayer);
+		}
 
 		this.selectedAnnotation = 0;
 
-		sketchfabServicePrev.setLDtexture(
-			function (readyTexture: any) {
-				console.log('response: ', readyTexture);
-				// remove loading bar and loadTextureLayer
-				if (readyTexture) {
-					setTimeout(()=>{
-						//viewer.removeChild(loading);
-						//viewer.removeChild(loadTextureLayer);
-					}, 1000);
-				}
-			},
-		);
+		sketchfabServicePrev.setLDtexture((readyTexture: any) => {
+			// remove loading bar and loadTextureLayer
+			if (readyTexture) {
+				//TODO fix lag, the repositioning should happens after the texture is set
+				sketchfabServicePrev.setInitCameraPos(true, 0, sketchfabServicePrev.camera.positionInit, sketchfabServicePrev.camera.targetInit, sketchfabServicePrev.api, () => { });
+			}
+		});
 
 		this.selectedModel = selectedModel;
+		this.selectedSketchfabService$.next(sketchfabServiceNext);
 
-		sketchfabServiceNext.setHDtexture(
-			function (readyTexture: any) {
-				console.log('response: ', readyTexture);
-				// remove loading bar and loadTextureLayer
-				if (readyTexture) {
-					setTimeout(()=>{
-						//viewer.removeChild(loading);
-						//viewer.removeChild(loadTextureLayer);
-					}, 1000);
-				}
-			},
-		);
+		sketchfabServiceNext.setHDtexture((readyTexture: any) => {
+			// remove loading bar and loadTextureLayer
+			if (readyTexture) {
+				setTimeout(()=>{
+					if (iframeWrapper) {
+						//iframeWrapper.removeChild(loading);
+						//iframeWrapper.removeChild(loadTextureLayer);
+					}
+				}, 1000);
+			}
+		});
 	}
 
 	public showInfoBlock(infoBlockIsVisible: boolean): void {
@@ -255,8 +325,9 @@ export class ViewerComponent implements OnInit {
 	}
 
 
-	public resetModel(selectedModel: number, modelChanged: boolean, lightStates: Array<number[]> | null) {
-
+	public resetModel(selectedModel: number, modelChanged: boolean, lightStates: Array<number[]> | null, sketchfabService: SketchfabService) {
+		console.log('lightStates: ', lightStates);
+		console.log('sketchfabService.camera.positionInit: ', sketchfabService.camera.positionInit);
 		if (!lightStates) {
 			return;
 		}
@@ -276,10 +347,11 @@ export class ViewerComponent implements OnInit {
 
 		// reset light positions
 
-		this._viewers[selectedModel].setLights(lightStates);
+		sketchfabService.setLights(lightStates);
 
 		// if modelChanged is true use animation time
-		this._viewers[selectedModel].setInitCameraPos(true, selectedModel, [0, 0, 0], [0, 0, 0]);
+
+		sketchfabService.setInitCameraPos(true, selectedModel, sketchfabService.camera.positionInit, sketchfabService.camera.targetInit, sketchfabService.api, () => { });
 	}
 
 	/**
