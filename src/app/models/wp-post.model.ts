@@ -1,7 +1,7 @@
 import { Links } from './links';
 import { PostMetaFields } from './post-meta-fields';
 
-export class WpModel {
+export class WpPostModel {
 	public author: number;
 
 	public categories: number[];

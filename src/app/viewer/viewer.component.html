@@ -14,7 +14,7 @@
 					post id: {{post.id}}
 					<div id="api-frame-wrapper-{{post.id}}" class="sketchfab-embed-wrapper">
 						<ng-container *ngIf="{texturQuality: source.sketchfabService?.texturQuality$ | async} as source3">
-							<div *ngIf="source.allLoaded && source3.texturQuality == 'HD' && selectedModel == i" class="spinner"></div>
+							<div *ngIf="source.allLoaded && source3.texturQuality == 'LD' && selectedModel == i" class="spinner"></div>
 							<iframe id="api-frame-{{post.id}}" src="" frameborder="0" allowfullscreen="" mozallowfullscreen="true"></iframe>
 						</ng-container>
 					</div>
@@ -31,7 +31,7 @@
 
 		Texture quality: {{source.sketchfabService?.texturQuality}}
 
-		<ng-container *ngIf= source.posts >
+		<ng-container *ngIf= source.posts.length >
 			postMetaFields: <pre>{{source.posts[0].post_meta_fields.image_url | json}}</pre>
 		</ng-container>
 
@@ -46,11 +46,11 @@
 			<li>
 				<img (click)="resetModel(selectedModel, false, source.sketchfabService.lightStates , source.sketchfabService)" src="../../assets/reset.png" alt="">
 			</li>
-			<li class="infoButton">
-				<div class="label" (click)="showInfoBlock(infoBlockIsVisible)">i</div>
+			<li class="menu-nav__infoButton">
+				<div class="menu-nav__label" (click)="showInfoBlock(infoBlockIsVisible)">i</div>
 			</li>
-			<li class="infoButton">
-				<div class="label" (click)="null">?</div>
+			<li class="menu-nav__infoButton">
+				<div class="menu-nav__label" (click)="null">?</div>
 			</li>
 		</ul>
 		infoBlockIsVisible: {{infoBlockIsVisible}}

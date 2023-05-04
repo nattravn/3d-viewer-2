@@ -5,7 +5,7 @@ import { WordpressService } from '../services/wordpress.service';
 import { SketchfabService } from '../services/sketchfab.service';
 import { BehaviorSubject, combineLatest, delay, filter, finalize, interval, map, Observable, of, ReplaySubject, Subject, Subscription, switchMap, take, takeUntil, takeWhile, tap } from 'rxjs';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
-import { WpModel } from '../models/wp-mode.modell';
+import { WpPostModel } from '../models/wp-post.model';
 import { PostMetaFields } from '../models/post-meta-fields';
 
 
@@ -64,7 +64,7 @@ export class ViewerComponent implements OnInit {
 
 	private _cameraTarget: Array<number[][]> = [];
 
-	private _viewers: Array<SketchfabService> = [];
+	//private _viewers: Array<SketchfabService> = [];
 
 	public viewersReady$: BehaviorSubject<string> = new BehaviorSubject<string>('Loading iframes');
 
@@ -100,13 +100,15 @@ export class ViewerComponent implements OnInit {
 	ngOnInit(): void {
 		// https://stackblitz.com/edit/rxjs-5-progress-bar-wxdxwe?devtoolsheight=50&file=index.ts
 
+		const sketchfabServices: Array<SketchfabService> = [];
+
 		this.wordpressService.getPostsFromWp().pipe(
 			delay(1),
 			take(1),
-			switchMap((posts: WpModel[]) => {
+			switchMap((posts: WpPostModel[]) => {
 
 				posts.forEach((post, i) => {
-					const sketchfabService = this.initWPpostData(post, i);
+					const sketchfabService = this.initWPpostData(post, i, sketchfabServices);
 					this.sketchfabServices$.push(of(sketchfabService));
 				});
 
@@ -114,10 +116,11 @@ export class ViewerComponent implements OnInit {
 					this.sketchfabServices$,
 				);
 			}),
-			switchMap(sketchfabServices => {
+			switchMap(resolvedSketchfabServices => {
 				const apireadyArray$: Array<Observable<boolean>> = [];
 
-				sketchfabServices.forEach((sketchfabService) => {
+				console.log("sketchfabServices: ", sketchfabServices);
+				resolvedSketchfabServices.forEach((sketchfabService) => {
 					apireadyArray$.push(sketchfabService.apiready$);
 				});
 
@@ -195,7 +198,7 @@ export class ViewerComponent implements OnInit {
    		this.destroy$.complete();
 	}
 
-	private initWPpostData(post: any, index: number): SketchfabService {
+	private initWPpostData(post: WpPostModel, index: number, sketchfabServices: SketchfabService[]): SketchfabService {
 		// assigning the annotation data from wordpress to global variables
 
 		this._descriptionsSwe.push(post.post_meta_fields.swe_description);
@@ -230,24 +233,26 @@ export class ViewerComponent implements OnInit {
 
 		//new annotation
 		const annotationBounds = {
-			animationTime: this._animationTime,
-			resetModelTime: this._resetModelTime,
+			animationTime: post.post_meta_fields.animation_time,
+			resetModelTime: post.post_meta_fields.reset_model_time,
 			cameraPosition: this._cameraPositions[index],
 			cameraTarget: this._cameraTarget[index],
-			spinVelocity: this._spin_velocity,
-			orbitPanFactor: this._orbitPanFactor,
-			orbitRotationFactor: this._orbitRotationFactor,
-			orbitZoomFactor: this._orbitZoomFactor,
-			logCamera: this._logCamera,
+			spinVelocity: post.post_meta_fields.spin_velocity,
+			orbitPanFactor: post.post_meta_fields.orbit_pan_factor,
+			orbitRotationFactor: post.post_meta_fields.orbit_rotation_factor,
+			orbitZoomFactor: post.post_meta_fields.orbit_zoom_factor,
+			logCamera: post.post_meta_fields.log_camera,
 		};
+
+		sketchfabServices.push(new SketchfabService());
 
 		const iframe = document.getElementById(`api-frame-${post.id}`);
 
-		this._viewers.push(new SketchfabService());
+		if (iframe) {
+			const client = sketchfabServices[index].init(iframe, uid, annotationBounds, 0);
+		}
 
-		const c = this._viewers[index].init(iframe, uid, annotationBounds, 0);
-
-		return this._viewers[index];
+		return sketchfabServices[index];
 	}
 
 	public selectModel(selectedModel: number, postId: number, sketchfabServicePrev: SketchfabService, sketchfabServiceNext: SketchfabService) {
@@ -268,8 +273,8 @@ export class ViewerComponent implements OnInit {
 		console.log("iframe: ", iframeWrapper);
 		console.log("selectedModel: ", postId);
 		if (iframeWrapper) {
-			iframeWrapper.appendChild(loading);
-			iframeWrapper.appendChild(loadTextureLayer);
+			//iframeWrapper.appendChild(loading);
+			//iframeWrapper.appendChild(loadTextureLayer);
 		}
 
 		this.selectedAnnotation = 0;

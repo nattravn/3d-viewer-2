@@ -1,42 +1,57 @@
-:root {
-	--model-menu-width: 90px;
-	--menu-scale: 1;
-	--fontSizeH2: 60px;
-}
+$menu-scale: 1;
 
 .menu-nav {
 	width: 100px;
+	z-index: 1;
+    position: absolute;
+    top: 0;
+    background: #fff;
+
+	li {
+		list-style: none;
+	}
+
+	li img {
+		width: 100px;
+	}
+
+	&__infoButton{
+		color: black;
+		height: calc(90px * $menu-scale);
+		padding: 0px;
+	}
+
+	&__infoButton:active{
+		height: calc(90px * $menu-scale);
+		background-color: #000;
+		color: white;
+	}
+
+	&__infoButton:focus{
+		background-color: #000;
+		color: white;
+	}
+
+	&__label{
+		font-size: 100px;
+		font-family: 'Courier New', Courier, monospace;
+		font-weight: bold;
+		height:100%;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
 }
 
-li {
-	list-style: none;
+.viewer {
+	li {
+		list-style: none;
+	}
 }
 
-li img {
-	width: 100px;
-}
 
-.infoButton{
-    color: black;
-    height: calc(90px * var(--menu-scale));
-    padding: 0px;
-}
 
-.infoButton.--active{
-    height: calc(90px * var(--menu-scale));
-    background-color: #000;
-    color: white;
-}
 
-.label{
-	font-size: 100px;
-	font-family: 'Courier New', Courier, monospace;
-	font-weight: bold;
-	height:100%;
-	display: flex;
-    align-items: center;
-    justify-content: center;
-}
 
 .info-block {
 	width: 700px;

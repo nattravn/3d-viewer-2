@@ -4,7 +4,7 @@ import { UntilDestroy, untilDestroyed } from '@ngneat/until-destroy';
 
 import { Observable, of, ReplaySubject, shareReplay, switchMap } from 'rxjs';
 import { PostMetaFields } from '../models/post-meta-fields';
-import { WpModel } from '../models/wp-mode.modell';
+import { WpPostModel } from '../models/wp-post.model';
 import * as testData from '../../assets/testData.json';
 
 
@@ -12,7 +12,7 @@ import * as testData from '../../assets/testData.json';
 @Injectable()
 export class WordpressService {
 
-	public posts$ = new Observable<WpModel[]>;
+	public posts$ = new Observable<WpPostModel[]>;
 
 	public postMetaFields$ = new ReplaySubject<PostMetaFields[]>(1);
 
@@ -24,12 +24,12 @@ export class WordpressService {
 		private http: HttpClient,
 	) { }
 
-	public getPostsFromWp(): Observable<WpModel[]> {
-		this.posts$ = this.http.get<WpModel[]>(this.apiEndpoint).pipe(
+	public getPostsFromWp(): Observable<WpPostModel[]> {
+		this.posts$ = this.http.get<WpPostModel[]>(this.apiEndpoint).pipe(
 			untilDestroyed(this),
 			switchMap(posts => {
 				const postMetaFields: PostMetaFields[] = [];
-
+				console.log("posts: ", posts);
 				posts.forEach(post => {
 					postMetaFields.push(post.post_meta_fields);
 				});
@@ -42,14 +42,14 @@ export class WordpressService {
 		return this.posts$;
 	}
 
-	public getPostsLocalJsonModule(): Observable<WpModel[]> {
+	public getPostsLocalJsonModule(): Observable<WpPostModel[]> {
 		this.posts$ = of(testData.default.posts);
 
 		return this.posts$;
 	}
 
-	public getPostsLocalHttpRequest(): Observable<WpModel[]> {
-		this.posts$ = this.http.get<{ posts: WpModel[] }>(this.apiEndpointJson).pipe(
+	public getPostsLocalHttpRequest(): Observable<WpPostModel[]> {
+		this.posts$ = this.http.get<{ posts: WpPostModel[] }>(this.apiEndpointJson).pipe(
 			untilDestroyed(this),
 			switchMap((res) => {
 				return of(res.posts);
