@@ -51,6 +51,8 @@ export class PostMetaFields {
 
 	public log_camera: string;
 
-	public _edit_lock: string;
+	public edit_lock: string;
+
+	public rot_axis: Array<number[]>;
 }
 

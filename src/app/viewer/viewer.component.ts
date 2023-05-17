@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { WordpressService } from '../services/wordpress.service';
 //import * as Sketchfab from 'src/sketchfab-viewer-1.12.1';
 //import * as Sketchfab2 from '@sketchfab/viewer-api/index'
@@ -20,6 +20,9 @@ export class ViewerComponent implements OnInit {
 	@ViewChild('postContainer') postContainer: ElementRef;
 
 	@ViewChild('iframeContainer') iframeContainerRef: ElementRef;
+
+	/** Get handle on cmp tags in the template */
+	@ViewChildren('viewerRef') viewerRef:QueryList<ElementRef>;
 
 	public readonly baseUrl = 'http://localhost:8080/wordpress/';
 
@@ -87,6 +90,8 @@ export class ViewerComponent implements OnInit {
 	subscription: Subscription;
 
 	private destroy$ = new Subject<void>();
+
+	public readyTexture = false;
 
 	constructor(
 		public wordpressService: WordpressService,
@@ -242,6 +247,7 @@ export class ViewerComponent implements OnInit {
 			orbitRotationFactor: post.post_meta_fields.orbit_rotation_factor,
 			orbitZoomFactor: post.post_meta_fields.orbit_zoom_factor,
 			logCamera: post.post_meta_fields.log_camera,
+			rot_axis: post.post_meta_fields.rot_axis,
 		};
 
 		sketchfabServices.push(new SketchfabService());
@@ -257,9 +263,14 @@ export class ViewerComponent implements OnInit {
 
 	public selectModel(selectedModel: number, postId: number, sketchfabServicePrev: SketchfabService, sketchfabServiceNext: SketchfabService) {
 
-		console.log("iframeContainerRef: ", this.iframeContainerRef.nativeElement);
+
+		//this.viewerRef.toArray()[selectedModel].nativeElement.disabled = false;
+		this.viewerRef.get(selectedModel)?.nativeElement.scrollIntoView();
+
 
 		const iframeWrapper = this.iframeContainerRef.nativeElement.querySelector(`#api-frame-wrapper-${postId}`);
+
+		//iframeWrapper.scrollIntoView();
 
 		//const viewer = document.getElementById(`api-frame-${postId}`);
 
@@ -283,6 +294,8 @@ export class ViewerComponent implements OnInit {
 			// remove loading bar and loadTextureLayer
 			if (readyTexture) {
 				//TODO fix lag, the repositioning should happens after the texture is set
+				this.readyTexture = true;
+
 				sketchfabServicePrev.setInitCameraPos(true, 0, sketchfabServicePrev.camera.positionInit, sketchfabServicePrev.camera.targetInit, sketchfabServicePrev.api, () => { });
 			}
 		});
@@ -293,6 +306,7 @@ export class ViewerComponent implements OnInit {
 		sketchfabServiceNext.setHDtexture((readyTexture: any) => {
 			// remove loading bar and loadTextureLayer
 			if (readyTexture) {
+				console.log('Texture loaded hd');
 				setTimeout(()=>{
 					if (iframeWrapper) {
 						//iframeWrapper.removeChild(loading);

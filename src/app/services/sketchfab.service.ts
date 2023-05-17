@@ -23,6 +23,8 @@ export class SketchfabService {
 
 	private logCamera = true;
 
+	private rotAxis = { x:0, y:0, z:0 };
+
 	public api: any = null;
 
 	public client: any = null;
@@ -42,9 +44,9 @@ export class SketchfabService {
 
 	public lightStates: Array<number[]> = [];
 
-	public texturQuality = "LD";
+	public textureQuality = "LD";
 
-	public texturQuality$ = new BehaviorSubject<string>('LD');
+	public textureQuality$ = new BehaviorSubject<string>('LD');
 
 
 	private time = 0;
@@ -98,6 +100,7 @@ export class SketchfabService {
 		this.orbitRotationFactor = annotationBounds.orbitRotationFactor;
 		this.orbitZoomFactor = annotationBounds.orbitZoomFactor;
 		this.logCamera = annotationBounds.logCamera;
+		this.rotAxis = annotationBounds.rot_axis;
 
 		// By default, the latest version of the viewer API will be used.
 		const client = new Sketchfab(iframe);
@@ -236,7 +239,7 @@ export class SketchfabService {
 			addValue = addValue - this.pi2;
 		}
 
-		api.rotate(instanceID, [-addValue, 0, 1, 0], {
+		api.rotate(instanceID, [-addValue, this.rotAxis.x, this.rotAxis.y, this.rotAxis.z], {
 			duration: this.speed,
 			easing: 'easeLinear',
 		}, () => {
@@ -350,7 +353,8 @@ export class SketchfabService {
 			if (!err) {
 				// TODO fix dynamic rotation axis
 				// Probably multiply with the node matrix here if the models pivot is rotated
-				api.rotate(this.rootMatrixNodeId, [0, 0, 1, 0], {
+				const angle = 0;
+				api.rotate(this.rootMatrixNodeId, [angle, this.rotAxis.x, this.rotAxis.y, this.rotAxis.z], {
 					duration: 2,
 					easing: 'easeLinear',
 				}, () => {
@@ -371,22 +375,22 @@ export class SketchfabService {
 	}
 
 	public setHDtexture(callback: any) {
-		this.texturQuality = 'HD';
+		this.textureQuality = 'HD';
 		this.api.setTextureQuality('hd', (readyTexture: any) => {
 			console.log('Texture quality set to high definition');
 			readyTexture = true;
-			this.texturQuality$.next('HD');
+			this.textureQuality$.next('HD');
 			callback(readyTexture);
 			return true;
 		});
 	}
 
 	public setLDtexture(callback: any) {
-		this.texturQuality = 'LD';
+		this.textureQuality = 'LD';
 		this.api.setTextureQuality('ld', (readyTexture: any) => {
 			console.log('Texture quality set to low definition');
 			readyTexture = true;
-			this.texturQuality$.next('LD');
+			this.textureQuality$.next('LD');
 			callback(readyTexture);
 			return true;
 		});

@@ -13,11 +13,19 @@
 				<li *ngFor="let post of source.posts; let i = index" id="t-{{post.id}}" class="wp-post" >
 					post id: {{post.id}}
 					<div id="api-frame-wrapper-{{post.id}}" class="sketchfab-embed-wrapper">
-						<ng-container *ngIf="{texturQuality: source.sketchfabService?.texturQuality$ | async} as source3">
-							<div *ngIf="source.allLoaded && source3.texturQuality == 'LD' && selectedModel == i" class="spinner"></div>
-							<iframe id="api-frame-{{post.id}}" src="" frameborder="0" allowfullscreen="" mozallowfullscreen="true"></iframe>
+						<ng-container *ngIf="{textureQuality: source.sketchfabService?.textureQuality$ | async} as source3">
+							<div *ngIf="source.allLoaded && source3.textureQuality == 'LD' && selectedModel == i" class="spinner"></div>
+							<iframe #viewerRef id="api-frame-{{post.id}}" src="" frameborder="0" allowfullscreen="" mozallowfullscreen="true"></iframe>
 						</ng-container>
 					</div>
+
+					<!-- render above template with a custom context -->
+					<ng-template [ngTemplateOutlet]="myTemplate"
+						[ngTemplateOutletContext]="{
+													$implicit: 'some col value',
+													bar: post
+												}"
+					></ng-template>
 				</li>
 			</ul>
 		</div>
@@ -29,7 +37,7 @@
 		Selected model: {{selectedModel}}
 		<br/>
 
-		Texture quality: {{source.sketchfabService?.texturQuality}}
+		Texture quality: {{source.sketchfabService?.textureQuality}}
 
 		<ng-container *ngIf= source.posts.length >
 			postMetaFields: <pre>{{source.posts[0].post_meta_fields.image_url | json}}</pre>
@@ -39,8 +47,8 @@
 		<ul class="menu-nav" *ngIf="source.sketchfabService">
 			<li *ngFor="let post of source.posts; let i = index"  >
 				<ng-container *ngIf="{sketchfabServiceNext: sketchfabServices$[i] | async} as source2">
-					Texture quality: {{source2.sketchfabServiceNext?.texturQuality$ | async}}
-					<img *ngIf="source2.sketchfabServiceNext && source.sketchfabService" (click)="selectModel(i, source.posts[i].id, source.sketchfabService, source2.sketchfabServiceNext)" src="{{post.post_meta_fields.image_url}}" fallback="../../assets/{{post.slug}}.png" alt="{{baseUrl}}/wp-content/uploads/{{post.slug}}.png" >
+					Texture quality: {{source2.sketchfabServiceNext?.textureQuality$ | async}}
+					<img *ngIf="source2.sketchfabServiceNext && source.sketchfabService" (click)="selectModel(i, post.id, source.sketchfabService, source2.sketchfabServiceNext)" src="{{post.post_meta_fields.image_url}}" fallback="../../assets/{{post.slug}}.png" alt="{{baseUrl}}/wp-content/uploads/{{post.slug}}.png" >
 				</ng-container>
 			</li>
 			<li>
@@ -84,5 +92,12 @@
 
 		<app-annotation-nav></app-annotation-nav>
 	</div>
+
+	<ng-template #myTemplate let-col let-foo="bar">
+		<div>{{col}}</div>
+		<div>{{foo}}</div>
+	  </ng-template>
+
+
 
 </ng-container>
