@@ -29,11 +29,19 @@ export class ViewerComponent implements OnInit {
 	// assigning the annotation data from wordpress to global variables
 	private _descriptionsSwe: Array<string[]> = [];
 
+
+
 	private _descriptionsEng: Array<string[]> = [];
 
 	private _sweAnnotTitle: Array<string[]> = [];
 
 	private _engAnnotTitle: Array<string[]> = [];
+
+	public annotationDescription$ = new ReplaySubject<string>(1);
+
+	public annotationTitle$ = new ReplaySubject<string>(1);
+
+	public selectedLanguage$ = new BehaviorSubject<'swedish' | 'english'>('english');
 
 	private _helpTextSwe: string;
 
@@ -146,6 +154,7 @@ export class ViewerComponent implements OnInit {
 				viewers[0].setHDtexture((readyTexture: any) => { });
 
 				this.selectedSketchfabService$.next(viewers[0]);
+
 				viewers.forEach((viewer: any, i: number)=> {
 					viewer.api.addEventListener('viewerready', () => {
 						//viewer.api.start();
@@ -177,7 +186,7 @@ export class ViewerComponent implements OnInit {
 				if (!selectedSketchfabService.cameraIsMoving && selectedSketchfabService.timer > 10) {
 					selectedSketchfabService.setLights(selectedSketchfabService.lightStates);
 
-					selectedSketchfabService.setInitCameraPos(true, 0, selectedSketchfabService.camera.positionInit, selectedSketchfabService.camera.targetInit, selectedSketchfabService.api, (err: boolean) => {
+					selectedSketchfabService.setInitCameraPos(true, 0, selectedSketchfabService.cameraPositions[0], selectedSketchfabService.cameraTargets[0], selectedSketchfabService.api, (err: boolean) => {
 						console.log("error: ", err);
 						if (!err) {
 							console.log("start rotating");
@@ -205,9 +214,30 @@ export class ViewerComponent implements OnInit {
 
 	private initWPpostData(post: WpPostModel, index: number, sketchfabServices: SketchfabService[]): SketchfabService {
 		// assigning the annotation data from wordpress to global variables
+		const annotations: {
+			swedish: {
+				titles: string[],
+				descriptions: string[],
+			},
+			english: {
+				titles: string[],
+				descriptions: string[],
+			}
+		} = {
+			swedish: { titles: [], descriptions: [] },
+			english: { titles: [], descriptions: [] },
+		};
 
-		this._descriptionsSwe.push(post.post_meta_fields.swe_description);
-		this._descriptionsEng.push(post.post_meta_fields.eng_description);
+		console.log("post.post_meta_fields.swe_description: ", post.post_meta_fields.swe_description)
+		post.post_meta_fields.swe_description.forEach((sweDescription, i) => {
+			annotations.swedish.descriptions.push(sweDescription);
+			annotations.english.descriptions.push(post.post_meta_fields.eng_description[i]);
+			annotations.swedish.titles.push(post.post_meta_fields.swe_title[i]);
+			annotations.english.titles.push(post.post_meta_fields.eng_title[i]);
+		});
+
+
+		//this._descriptionsEng.push(post.post_meta_fields.eng_description);
 		this._sweAnnotTitle.push(post.post_meta_fields.swe_title);
 		this._engAnnotTitle.push(post.post_meta_fields.eng_title);
 
@@ -222,37 +252,36 @@ export class ViewerComponent implements OnInit {
 		this._helpHeadingSwe = post.post_meta_fields.swe_help_heading;
 		this._helpHeadingEng = post.post_meta_fields.eng_help_heading;
 
-		this._spin_velocity = post.post_meta_fields.spin_velocity;
-		this._animationTime = post.post_meta_fields.animation_time;
-		this._resetModelTime = post.post_meta_fields.reset_model_time;
-		this._resetTime = post.post_meta_fields.reset_time;
 		this._menuScale = post.post_meta_fields.menu_scale;
 		this._textboxScale = post.post_meta_fields.textbox_scale;
-		this._orbitPanFactor = post.post_meta_fields.orbit_pan_factor;
-		this._orbitRotationFactor = post.post_meta_fields.orbit_rotation_factor;
-		this._orbitZoomFactor = post.post_meta_fields.orbit_zoom_factor;
-		this._logCamera = post.post_meta_fields.log_camera;
 
-		this._cameraPositions.push(post.post_meta_fields.camera_position);
-		this._cameraTarget.push(post.post_meta_fields.camera_target);
+		const cameraPositions = [];
+		const cameraTarget = [];
+		cameraPositions.push(post.post_meta_fields.camera_position);
+		cameraTarget.push(post.post_meta_fields.camera_target);
+
+		console.log("post.post_meta_fields.camera_target: ", post.post_meta_fields.camera_target);
 
 		//new annotation
 		const annotationBounds = {
 			animationTime: post.post_meta_fields.animation_time,
 			resetModelTime: post.post_meta_fields.reset_model_time,
-			cameraPosition: this._cameraPositions[index],
-			cameraTarget: this._cameraTarget[index],
+			cameraPositions: post.post_meta_fields.camera_position,
+			cameraTargets: post.post_meta_fields.camera_target,
 			spinVelocity: post.post_meta_fields.spin_velocity,
 			orbitPanFactor: post.post_meta_fields.orbit_pan_factor,
 			orbitRotationFactor: post.post_meta_fields.orbit_rotation_factor,
 			orbitZoomFactor: post.post_meta_fields.orbit_zoom_factor,
 			logCamera: post.post_meta_fields.log_camera,
 			rot_axis: post.post_meta_fields.rot_axis,
+			annotations: annotations,
 		};
 
 		sketchfabServices.push(new SketchfabService());
 
-		const iframe = document.getElementById(`api-frame-${post.id}`);
+		//const iframe = document.getElementById(`api-frame-${post.id}`);
+		const iframe = this.viewerRef.get(index)?.nativeElement;
+
 
 		if (iframe) {
 			const client = sketchfabServices[index].init(iframe, uid, annotationBounds, 0);
@@ -261,32 +290,12 @@ export class ViewerComponent implements OnInit {
 		return sketchfabServices[index];
 	}
 
-	public selectModel(selectedModel: number, postId: number, sketchfabServicePrev: SketchfabService, sketchfabServiceNext: SketchfabService) {
+	public selectModel(selectedModel: number, sketchfabServicePrev: SketchfabService, sketchfabServiceNext: SketchfabService, selectedLanguage: 'swedish' | 'english') {
 
 
 		//this.viewerRef.toArray()[selectedModel].nativeElement.disabled = false;
 		this.viewerRef.get(selectedModel)?.nativeElement.scrollIntoView();
 
-
-		const iframeWrapper = this.iframeContainerRef.nativeElement.querySelector(`#api-frame-wrapper-${postId}`);
-
-		//iframeWrapper.scrollIntoView();
-
-		//const viewer = document.getElementById(`api-frame-${postId}`);
-
-		// append loading bar for texture-loading
-		const loading = document.createElement('div');
-		const loadTextureLayer = document.createElement('div');
-
-		loading.className = 'spinner';
-		loadTextureLayer.className = 'load-texture-layer';
-
-		console.log("iframe: ", iframeWrapper);
-		console.log("selectedModel: ", postId);
-		if (iframeWrapper) {
-			//iframeWrapper.appendChild(loading);
-			//iframeWrapper.appendChild(loadTextureLayer);
-		}
 
 		this.selectedAnnotation = 0;
 
@@ -296,7 +305,7 @@ export class ViewerComponent implements OnInit {
 				//TODO fix lag, the repositioning should happens after the texture is set
 				this.readyTexture = true;
 
-				sketchfabServicePrev.setInitCameraPos(true, 0, sketchfabServicePrev.camera.positionInit, sketchfabServicePrev.camera.targetInit, sketchfabServicePrev.api, () => { });
+				sketchfabServicePrev.setInitCameraPos(true, 0, sketchfabServicePrev.cameraPositions[0], sketchfabServicePrev.cameraTargets[0], sketchfabServicePrev.api, () => { });
 			}
 		});
 
@@ -307,46 +316,53 @@ export class ViewerComponent implements OnInit {
 			// remove loading bar and loadTextureLayer
 			if (readyTexture) {
 				console.log('Texture loaded hd');
-				setTimeout(()=>{
-					if (iframeWrapper) {
-						//iframeWrapper.removeChild(loading);
-						//iframeWrapper.removeChild(loadTextureLayer);
-					}
-				}, 1000);
 			}
 		});
+
+		this.annotationDescription$.next(sketchfabServiceNext.annotations[selectedLanguage].descriptions[this.selectedAnnotation]);
+		this.annotationTitle$.next(sketchfabServiceNext.annotations[selectedLanguage].titles[this.selectedAnnotation]);
 	}
 
-	public showInfoBlock(infoBlockIsVisible: boolean): void {
+	public showInfoBlock(infoBlockIsVisible: boolean, selectedSketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): void {
+		this.annotationDescription$.next(selectedSketchfabService.annotations[selectedLanguage].descriptions[this.selectedAnnotation]);
+		this.annotationTitle$.next(selectedSketchfabService.annotations[selectedLanguage].titles[this.selectedAnnotation]);
 		this.infoBlockIsVisible = infoBlockIsVisible ? false : true;
 	}
 
-	public previousAnnotation(selectedModel: number, post_meta_fields: PostMetaFields, sketchfabService: SketchfabService): void {
+	public previousAnnotation(selectedModel: number, sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): void {
 		if (this.selectedAnnotation > 0) {
 			this.selectedAnnotation--;
 		}
-		sketchfabService.nextAnnotation(post_meta_fields.camera_position[this.selectedAnnotation], post_meta_fields.camera_target[this.selectedAnnotation], sketchfabService.api);
+
+		sketchfabService.nextAnnotation(sketchfabService.cameraPositions[this.selectedAnnotation], sketchfabService.cameraTargets[this.selectedAnnotation], sketchfabService.api);
+
+		this.annotationDescription$.next(sketchfabService.annotations[selectedLanguage].descriptions[this.selectedAnnotation]);
+		this.annotationTitle$.next(sketchfabService.annotations[selectedLanguage].titles[this.selectedAnnotation]);
 	}
 
-	public nextAnnotation(postsLength: number, selectedModel: number, post_meta_fields: PostMetaFields, sketchfabService: SketchfabService): void {
+	public nextAnnotation(selectedModel: number, sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): void {
+		console.log("sketchfabService.cameraTarget: ", sketchfabService);
 		if (!sketchfabService) {
 			return;
 		}
 
-		if (this.selectedAnnotation < postsLength) {
+		if (this.selectedAnnotation < sketchfabService.cameraTargets.length) {
 			this.selectedAnnotation++;
 		}
 		sketchfabService.nextAnnotation(
-			post_meta_fields.camera_position[this.selectedAnnotation],
-			post_meta_fields.camera_target[this.selectedAnnotation],
+			sketchfabService.cameraPositions[this.selectedAnnotation],
+			sketchfabService.cameraTargets[this.selectedAnnotation],
 			sketchfabService.api,
 		);
+
+		this.annotationDescription$.next(sketchfabService.annotations[selectedLanguage].descriptions[this.selectedAnnotation]);
+		this.annotationTitle$.next(sketchfabService.annotations[selectedLanguage].titles[this.selectedAnnotation]);
 	}
 
 
-	public resetModel(selectedModel: number, modelChanged: boolean, lightStates: Array<number[]> | null, sketchfabService: SketchfabService) {
+	public resetModel(selectedModel: number, modelChanged: boolean, lightStates: Array<number[]> | null, sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english') {
 		console.log('lightStates: ', lightStates);
-		console.log('sketchfabService.camera.positionInit: ', sketchfabService.camera.positionInit);
+		console.log('sketchfabService.camera: ', sketchfabService.camera);
 		if (!lightStates) {
 			return;
 		}
@@ -370,31 +386,16 @@ export class ViewerComponent implements OnInit {
 
 		// if modelChanged is true use animation time
 
-		sketchfabService.setInitCameraPos(true, selectedModel, sketchfabService.camera.positionInit, sketchfabService.camera.targetInit, sketchfabService.api, () => { });
+		sketchfabService.setInitCameraPos(true, selectedModel, sketchfabService.cameraPositions[0], sketchfabService.cameraTargets[0], sketchfabService.api, () => { });
+
+		this.annotationDescription$.next(sketchfabService.annotations[selectedLanguage].descriptions[0]);
+		this.annotationTitle$.next(sketchfabService.annotations[selectedLanguage].titles[0]);
 	}
 
-	/**
-	 * Wait for element to be rendered in template
-	 * @param selector
-	 * @returns
-	 */
-	private waitForElm(selector: any) {
-		return new Promise(resolve => {
-			if (document.querySelector(selector)) {
-				return resolve(document.querySelector(selector));
-			}
+	public toggleLanguage(annotations: any, selectedLanguage: 'swedish' | 'english', selectedAnnotation: number) {
+		this.annotationDescription$.next(annotations.descriptions[selectedAnnotation]);
+		this.annotationTitle$.next(annotations.titles[selectedAnnotation]);
 
-			const observer = new MutationObserver(() => {
-				if (document.querySelector(selector)) {
-					resolve(document.querySelector(selector));
-					observer.disconnect();
-				}
-			});
-
-			observer.observe(document.body, {
-				childList: true,
-				subtree: true,
-			});
-		});
+		this.selectedLanguage$.next(selectedLanguage);
 	}
 }

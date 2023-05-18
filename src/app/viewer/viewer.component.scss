@@ -1,19 +1,26 @@
 $menu-scale: 1;
 
+
+
 .menu-nav {
 	width: 100px;
 	z-index: 1;
     position: fixed;
-    top: 0;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
     background: #fff;
+	padding: 10px;
+    margin: 0;
 
 	li {
 		list-style: none;
+
+		img {
+			width: 100px;
+		}
 	}
 
-	li img {
-		width: 100px;
-	}
 
 	&__infoButton{
 		color: black;
@@ -65,10 +72,15 @@ $menu-scale: 1;
 
 }
 
-iframe {
-	width: 100%;
+
+.sketchfab-embed-wrapper{
 	height: 100vh;
+	iframe {
+		width: 100%;
+		height: 100vh;
+	}
 }
+
 
 .load-texture-layer{
 	width: 100%;

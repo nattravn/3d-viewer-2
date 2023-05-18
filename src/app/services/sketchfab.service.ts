@@ -81,6 +81,24 @@ export class SketchfabService {
 
 	public rootMatrixNodeId = null;
 
+	public cameraPositions = new Array<[]>;
+
+	public cameraTargets = new Array<[]>;
+
+	public annotations: {
+		swedish: {
+			titles: string[],
+			descriptions: string[],
+		},
+		english: {
+			titles: string[],
+			descriptions: string[],
+		}
+	} = {
+			swedish: { titles: [], descriptions: [] },
+			english: { titles: [], descriptions: [] },
+		};
+
 	constructor(
 	) {
 		this.apiready$.next(false);
@@ -101,6 +119,9 @@ export class SketchfabService {
 		this.orbitZoomFactor = annotationBounds.orbitZoomFactor;
 		this.logCamera = annotationBounds.logCamera;
 		this.rotAxis = annotationBounds.rot_axis;
+		this.cameraPositions = annotationBounds.cameraPositions;
+		this.cameraTargets = annotationBounds.cameraTargets;
+		this.annotations = annotationBounds.annotations;
 
 		// By default, the latest version of the viewer API will be used.
 		const client = new Sketchfab(iframe);
@@ -154,13 +175,13 @@ export class SketchfabService {
 			});
 
 
-			this.api.getCameraLookAt(async (err: any, camera: Camera) => {
+			// this.api.getCameraLookAt(async (err: any, camera: Camera) => {
+			// 	console.log("set positionInit: ", camera.position);
+			// 	this.camera.positionInit = await camera.position;
+			// 	this.camera.targetInit = camera.target;
 
-				this.camera.positionInit = await camera.position;
-				this.camera.targetInit = camera.target;
-
-				this._onTick(this.camera.positionInit, this.camera.targetInit);
-			});
+			// 	this._onTick(this.camera.positionInit, this.camera.targetInit);
+			// });
 
 			const lightStates: Array<number[]> = [];
 
@@ -213,6 +234,10 @@ export class SketchfabService {
 				});
 			});
 
+			api.addEventListener('click', () => {
+				this._onClick(this.camera);
+			});
+
 			api.getRootMatrixNode((err: any, id: any, m: any ) => {
 				// TODO set this in a better way
 				if (!err) {
@@ -241,7 +266,7 @@ export class SketchfabService {
 
 		api.rotate(instanceID, [-addValue, this.rotAxis.x, this.rotAxis.y, this.rotAxis.z], {
 			duration: this.speed,
-			easing: 'easeLinear',
+			easing: 'linear',
 		}, () => {
 			//this.doneRotate = true;
 			this.updateRotation((addValue + this.speedRotate), instanceID, api);
@@ -275,10 +300,9 @@ export class SketchfabService {
 	 */
 	private _onTick(positionInit: any, targetInit: any) {
 		// we dont always log camera position because of memory leak
-		if (false) {
-			this._updateCamera();
+		if (this.logCamera) {
+			//this._updateCamera();
 		}
-
 
 		const onTick2 = () => {
 			if (!this.cameraMoving) {
@@ -291,10 +315,29 @@ export class SketchfabService {
 		onTick2();
 	}
 
+	//when the user click in the 3d space, hide both annotations, descriptions and dropdownmenu
+	private _onClick(camera: any) {
+
+		this.api.getCameraLookAt((err: any, camera: any) => {
+			console.log("camera: ", camera);
+			const posX = camera.position[0].toFixed(3);
+			const posY = camera.position[1].toFixed(3);
+			const posZ = camera.position[2].toFixed(3);
+
+			const targX = camera.target[0].toFixed(3);
+			const targY = camera.target[1].toFixed(3);
+			const targZ = camera.target[2].toFixed(3);
+			console.log("camera.position: ", posX, " ", posY, " ", posZ);
+			console.log("camera.target: ", targX, " ", targY, " ", targZ);
+		});
+		//console.clear()
+
+	}
+
 	// Probably delete this
 	private _updateCamera() {
 		this.api.getCameraLookAt((err: any, camera: any) => {
-			this.camera = camera;
+			return camera;
 		});
 	}
 
@@ -387,10 +430,11 @@ export class SketchfabService {
 
 	public setLDtexture(callback: any) {
 		this.textureQuality = 'LD';
+		this.textureQuality$.next('LD');
 		this.api.setTextureQuality('ld', (readyTexture: any) => {
 			console.log('Texture quality set to low definition');
 			readyTexture = true;
-			this.textureQuality$.next('LD');
+
 			callback(readyTexture);
 			return true;
 		});
