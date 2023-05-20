@@ -1,17 +1,48 @@
-import { Inject, Injectable } from '@angular/core';
+import { Injectable } from '@angular/core';
 //import Sketchfab2 from 'src/sketchfab-viewer-1.12.1';
 
 import Sketchfab from '@sketchfab/viewer-api';
-import { BehaviorSubject, debounceTime, delay, EMPTY, filter, finalize, interval, Observable, of, ReplaySubject, Subject, switchMap, take, takeWhile, tap } from 'rxjs';
-import { Camera } from '../models/camera';
+import { BehaviorSubject, filter, ReplaySubject, takeWhile, tap } from 'rxjs';
+import { Camera } from '../models/camera.model';
+import { InfoBox } from '../models/info-box-content.model';
+import { Annotation } from '../models/annotation.model';
 
 @Injectable()
 export class SketchfabService {
 
+	//Public fields
+	public api: any = null;
+
+	public client: any = null;
+
+	public modelIndex = null;
+
+	public cameraMoving = false;
+
+	public apiready$ = new ReplaySubject<boolean>(1);
+
+	public lightStates$ = new ReplaySubject<Array<number[]>>(1);
+
+	public lightStates: Array<number[]> = [];
+
+	public textureQuality$ = new BehaviorSubject<string>('LD');
+
+	public timer = 0;
+
+	public cameraIsMoving = false;
+
+	public cameraIsMoving$ = new BehaviorSubject(false);
+
+	public rootMatrixNodeId = null;
+
+	public annotations: Array<Annotation>;
+
+	public helpInfo: InfoBox;
+
 	//// Private fields
 	private animationTime = 0;
 
-	private resetModelTime = 0;
+	public resetModelTime = 0;
 
 	private spinVelocity = 0;
 
@@ -25,29 +56,7 @@ export class SketchfabService {
 
 	private rotAxis = { x:0, y:0, z:0 };
 
-	public api: any = null;
-
-	public client: any = null;
-
-	private frames = 0;
-
-	//Public fields
-	public cameraMoving = false;
-
-	public spinning = false;
-
-	public viewerready = false;
-
-	public apiready$ = new ReplaySubject<boolean>(1);
-
-	public lightStates$ = new ReplaySubject<Array<number[]>>(1);
-
-	public lightStates: Array<number[]> = [];
-
-	public textureQuality = "LD";
-
-	public textureQuality$ = new BehaviorSubject<string>('LD');
-
+	private spinning = false;
 
 	private time = 0;
 
@@ -59,11 +68,9 @@ export class SketchfabService {
 
 	private y = 0;
 
-	public camera = new Camera;
+	private camera = new Camera;
 
 	private doneRotate = false;
-
-	private doneRotate$ = new BehaviorSubject(false);
 
 	// full circle
 	private pi2 = 2.0 * Math.PI;
@@ -73,31 +80,7 @@ export class SketchfabService {
 
 	private speed = 0.05;
 
-	public timer = 0;
-
-	public cameraIsMoving = false;
-
-	private cameraIsMoving$ = new ReplaySubject<boolean>(1);
-
-	public rootMatrixNodeId = null;
-
-	public cameraPositions = new Array<[]>;
-
-	public cameraTargets = new Array<[]>;
-
-	public annotations: {
-		swedish: {
-			titles: string[],
-			descriptions: string[],
-		},
-		english: {
-			titles: string[],
-			descriptions: string[],
-		}
-	} = {
-			swedish: { titles: [], descriptions: [] },
-			english: { titles: [], descriptions: [] },
-		};
+	private frames = 0;
 
 	constructor(
 	) {
@@ -119,9 +102,9 @@ export class SketchfabService {
 		this.orbitZoomFactor = annotationBounds.orbitZoomFactor;
 		this.logCamera = annotationBounds.logCamera;
 		this.rotAxis = annotationBounds.rot_axis;
-		this.cameraPositions = annotationBounds.cameraPositions;
-		this.cameraTargets = annotationBounds.cameraTargets;
 		this.annotations = annotationBounds.annotations;
+		this.helpInfo = annotationBounds.helpInfo;
+		this.modelIndex = annotationBounds.modelIndex;
 
 		// By default, the latest version of the viewer API will be used.
 		const client = new Sketchfab(iframe);
@@ -130,7 +113,6 @@ export class SketchfabService {
 
 		// https://github.com/sketchfab/experiments/blob/master/compare-models/js/views/App.js
 
-		this.viewerready = false;
 
 		// Alternatively, you can request a specific version.
 		// var client = new Sketchfab( '1.12.1', iframe );
@@ -212,7 +194,6 @@ export class SketchfabService {
 				this.doneRotate = true;
 				this.cameraIsMoving$.next(true);
 				this.cameraIsMoving = true;
-				this.doneRotate$.next(true);
 			});
 
 			api.addEventListener('camerastop', () =>{
@@ -220,7 +201,6 @@ export class SketchfabService {
 				this.doneRotate = false;
 				this.cameraIsMoving = false;
 				console.log("camera stop")
-				this.doneRotate$.next(false);
 				this.cameraIsMoving$.next(false);
 				this.timer = 0;
 			});
@@ -271,7 +251,6 @@ export class SketchfabService {
 			//this.doneRotate = true;
 			this.updateRotation((addValue + this.speedRotate), instanceID, api);
 		});
-
 	}
 
 	private onError(e: any) {
@@ -283,7 +262,6 @@ export class SketchfabService {
 		api.setCameraLookAt(position, target, this.animationTime, () => {
 			console.log('prev annotation');
 		});
-
 	}
 
 	public nextAnnotation(position: number[], target: number[], api: any) {
@@ -331,7 +309,6 @@ export class SketchfabService {
 			console.log("camera.target: ", targX, " ", targY, " ", targZ);
 		});
 		//console.clear()
-
 	}
 
 	// Probably delete this
@@ -388,9 +365,7 @@ export class SketchfabService {
 		this.api.setEnvironment({ rotation: states[3].rotation });
 	}
 
-	public setInitCameraPos(useAnimationTime: boolean, currentIframe: number, cameraPositionInit: number[], cameraTargetInit: number[], api: any, readyToRotate: (err: any) => void) {
-		//if we changing model we dont want to use animation time, 0.1s instead
-		const resetModelTime = (useAnimationTime ? this.resetModelTime : 0.1);
+	public setInitCameraPos(currentIframe: number, cameraPositionInit: number[], cameraTargetInit: number[], api: any, resetModelTime: number, readyToRotate: (err: any) => void) {
 
 		api.setCameraLookAt(cameraPositionInit, cameraTargetInit, resetModelTime, (err: any) => {
 			if (!err) {
@@ -398,7 +373,7 @@ export class SketchfabService {
 				// Probably multiply with the node matrix here if the models pivot is rotated
 				const angle = 0;
 				api.rotate(this.rootMatrixNodeId, [angle, this.rotAxis.x, this.rotAxis.y, this.rotAxis.z], {
-					duration: 2,
+					duration: resetModelTime,
 					easing: 'easeLinear',
 				}, () => {
 
@@ -413,12 +388,9 @@ export class SketchfabService {
 				});
 			}
 		});
-
-
 	}
 
 	public setHDtexture(callback: any) {
-		this.textureQuality = 'HD';
 		this.api.setTextureQuality('hd', (readyTexture: any) => {
 			console.log('Texture quality set to high definition');
 			readyTexture = true;
@@ -429,7 +401,6 @@ export class SketchfabService {
 	}
 
 	public setLDtexture(callback: any) {
-		this.textureQuality = 'LD';
 		this.textureQuality$.next('LD');
 		this.api.setTextureQuality('ld', (readyTexture: any) => {
 			console.log('Texture quality set to low definition');

@@ -5,19 +5,25 @@
 	viewersReady: viewersReady$ | async,
 	lightStates: sketchfabService.lightStates$ | async,
 	allLoaded: allLoaded$ | async,
-	sketchfabService: sketchfabServices$[selectedModel] | async,
 	selectedSketchfabService: selectedSketchfabService$ | async,
 	annotationDescription: annotationDescription$ | async,
 	annotationTitle: annotationTitle$ | async,
-	selectedLanguage: selectedLanguage$ | async
+	selectedLanguage: selectedLanguage$ | async,
+	helpInfoHeading: helpInfoHeading$ | async,
+	helpInfoText: helpInfoText$ | async
 } as source">
 	<div *ngIf="source.posts">
+
+		<div class="loading-models" *ngIf="!source.allLoaded">
+			{{source.viewersReady}}
+		</div>
+
 		<div class="viewer" id="viewer">
 			<ul #iframeContainer >
 				<li *ngFor="let post of source.posts; let i = index" class="wp-post" >
 					<div class="sketchfab-embed-wrapper">
-						<ng-container *ngIf="{textureQuality: source.sketchfabService?.textureQuality$ | async} as source3">
-							<div *ngIf="source.allLoaded && source3.textureQuality == 'LD' && selectedModel == i" class="spinner"></div>
+						<ng-container *ngIf="{textureQuality: source.selectedSketchfabService?.textureQuality$ | async} as source3">
+							<div *ngIf="source.allLoaded && source3.textureQuality == 'LD' && source.selectedSketchfabService!.modelIndex === i" class="spinner"></div>
 							<iframe #viewerRef src="" frameborder="0" allowfullscreen="" mozallowfullscreen="true"></iframe>
 						</ng-container>
 					</div>
@@ -25,69 +31,54 @@
 			</ul>
 		</div>
 
-		Number of: {{source.posts.length | json}}
-		viewersReady: {{source.viewersReady | json}}
-
-		<br/>
-		Selected model: {{selectedModel}}
-		<br/>
-
-		Texture quality: {{source.sketchfabService?.textureQuality}}
-
-		<ng-container *ngIf= source.posts.length >
-			postMetaFields: <pre>{{source.posts[0].post_meta_fields.image_url | json}}</pre>
-		</ng-container>
-
 
 		<ul class="menu-nav" *ngIf="source.selectedSketchfabService && source.selectedLanguage">
 			<li *ngFor="let post of source.posts; let i = index"  >
 				<ng-container *ngIf="{sketchfabServiceNext: sketchfabServices$[i] | async} as source2">
 					Texture quality: {{source2.sketchfabServiceNext?.textureQuality$ | async}}
-					<img *ngIf="source2.sketchfabServiceNext && source.sketchfabService" (click)="selectModel(i, source.selectedSketchfabService, source2.sketchfabServiceNext, source.selectedLanguage)" src="{{post.post_meta_fields.image_url}}" fallback="../../assets/{{post.slug}}.png" alt="{{baseUrl}}/wp-content/uploads/{{post.slug}}.png" >
+					<img *ngIf="source2.sketchfabServiceNext && source.selectedSketchfabService" (click)="selectModel(source.selectedSketchfabService, source2.sketchfabServiceNext, source.selectedLanguage)" src="{{post.post_meta_fields.image_url}}" fallback="../../assets/{{post.slug}}.png" alt="{{baseUrl}}/wp-content/uploads/{{post.slug}}.png" >
 				</ng-container>
 			</li>
 			<li>
-				<img (click)="resetModel(selectedModel, false, source.selectedSketchfabService.lightStates , source.selectedSketchfabService, source.selectedLanguage)" src="../../assets/reset.png" alt="">
+				<img (click)="resetModel(false, source.selectedSketchfabService.lightStates , source.selectedSketchfabService, source.selectedLanguage)" src="../../assets/reset.png" alt="">
 			</li>
 			<li class="menu-nav__infoButton">
-				<div class="menu-nav__label" (click)="showInfoBlock(infoBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">i</div>
+				<div class="menu-nav__label" (click)="showAnnotationBlock(annotationBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">i</div>
 			</li>
 			<li class="menu-nav__infoButton">
-				<div class="menu-nav__label" (click)="null">?</div>
+				<div class="menu-nav__label" (click)="showInfoBlock(infoBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">?</div>
 			</li>
 		</ul>
-		infoBlockIsVisible: {{infoBlockIsVisible}}
-		<p>
-		viewer works!
-		</p>
 
-		<div *ngIf="infoBlockIsVisible && source.selectedSketchfabService && source.annotationTitle && source.annotationDescription && source.selectedLanguage" class="info-block">
+		<div *ngIf="annotationBlockIsVisible && source.selectedSketchfabService && source.annotationTitle && source.annotationDescription && source.selectedLanguage" class="info-block">
 			<h2>{{source.annotationTitle}}</h2>
 			<p>
 				{{source.annotationDescription}}
 			</p>
 			<span (click)="previousAnnotation(
-				selectedModel,
 				source.selectedSketchfabService,
 				source.selectedLanguage)">
 				prev
 			</span>
 
-			<span (click)="showInfoBlock(infoBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">
+			<span (click)="showAnnotationBlock(annotationBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">
 				x
 			</span>
 
 			<span (click)="nextAnnotation(
-				selectedModel,
 				source.selectedSketchfabService,
 				source.selectedLanguage)">
 				next
 			</span>
 
 			<div>
-				<span (click)="toggleLanguage(source.selectedSketchfabService.annotations.swedish, 'swedish', selectedAnnotation)">Svenska/</span>
-				<span (click)="toggleLanguage(source.selectedSketchfabService.annotations.english, 'english', selectedAnnotation)">Engelska</span>
+				<span (click)="toggleLanguage(source.selectedSketchfabService.annotations[selectedAnnotation].swedish, 'swedish', selectedAnnotation)">Svenska/</span>
+				<span (click)="toggleLanguage(source.selectedSketchfabService.annotations[selectedAnnotation].english, 'english', selectedAnnotation)">Engelska</span>
 			</div>
+		</div>
+
+		<div *ngIf="infoBlockIsVisible" class="info-block">
+			<h2>{{source.helpInfoHeading}}</h2>
 		</div>
 
 		<app-menu></app-menu>
