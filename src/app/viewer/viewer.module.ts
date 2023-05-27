@@ -8,6 +8,7 @@ import { WordpressService } from '../services/wordpress.service';
 import { HttpClientModule } from '@angular/common/http';
 import { SafeHtmlPipe } from '../pipes/safe-html.pipe';
 import { FallbackImgDirective } from '../directives/my-directive.directive';
+import { AsyncClickDirective } from '../directives/async-click.directive';
 
 
 @NgModule({
@@ -21,6 +22,7 @@ import { FallbackImgDirective } from '../directives/my-directive.directive';
 		AnnotationNavComponent,
 		SafeHtmlPipe,
 		FallbackImgDirective,
+		AsyncClickDirective,
 	],
 	providers: [
 		SketchfabService,

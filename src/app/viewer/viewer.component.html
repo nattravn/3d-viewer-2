@@ -40,7 +40,8 @@
 				</ng-container>
 			</li>
 			<li>
-				<img (click)="resetModel(false, source.selectedSketchfabService.lightStates , source.selectedSketchfabService, source.selectedLanguage)" src="../../assets/reset.png" alt="">
+				<button [asyncClick]="resetModel$.bind(this, source.selectedSketchfabService.lightStates , source.selectedSketchfabService, source.selectedLanguage)">Reset</button>
+				<img src="../../assets/reset.png" alt="">
 			</li>
 			<li class="menu-nav__infoButton">
 				<div class="menu-nav__label" (click)="showAnnotationBlock(annotationBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">i</div>

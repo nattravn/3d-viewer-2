@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 //import Sketchfab2 from 'src/sketchfab-viewer-1.12.1';
 
 import Sketchfab from '@sketchfab/viewer-api';
-import { BehaviorSubject, filter, ReplaySubject, takeWhile, tap } from 'rxjs';
+import { BehaviorSubject, filter, Observable, of, ReplaySubject, takeWhile, tap } from 'rxjs';
 import { Camera } from '../models/camera.model';
 import { InfoBox } from '../models/info-box-content.model';
 import { Annotation } from '../models/annotation.model';
@@ -16,8 +16,6 @@ export class SketchfabService {
 	public client: any = null;
 
 	public modelIndex = null;
-
-	public cameraMoving = false;
 
 	public apiready$ = new ReplaySubject<boolean>(1);
 
@@ -56,7 +54,7 @@ export class SketchfabService {
 
 	private rotAxis = { x:0, y:0, z:0 };
 
-	private spinning = false;
+	public spinning = false;
 
 	private time = 0;
 
@@ -80,7 +78,7 @@ export class SketchfabService {
 
 	private speed = 0.05;
 
-	private frames = 0;
+	public frames = 0;
 
 	constructor(
 	) {
@@ -157,13 +155,15 @@ export class SketchfabService {
 			});
 
 
-			// this.api.getCameraLookAt(async (err: any, camera: Camera) => {
-			// 	console.log("set positionInit: ", camera.position);
-			// 	this.camera.positionInit = await camera.position;
-			// 	this.camera.targetInit = camera.target;
+			this.api.getCameraLookAt(async (err: any, camera: Camera) => {
+				this.camera.positionInit = await camera.position;
+				this.camera.targetInit = camera.target;
+			});
 
-			// 	this._onTick(this.camera.positionInit, this.camera.targetInit);
-			// });
+
+			this._onTick(this.annotations[0].cameraPosition, this.annotations[0].cameraTarget);
+
+
 
 			const lightStates: Array<number[]> = [];
 
@@ -192,16 +192,16 @@ export class SketchfabService {
 
 			api.addEventListener('camerastart', () => {
 				this.doneRotate = true;
-				this.cameraIsMoving$.next(true);
-				this.cameraIsMoving = true;
+				//this.cameraIsMoving$.next(true);
+				//this.cameraIsMoving = true;
+				//console.log('camerastart')
 			});
 
 			api.addEventListener('camerastop', () =>{
-				this.cameraMoving = false;
 				this.doneRotate = false;
-				this.cameraIsMoving = false;
-				console.log("camera stop")
-				this.cameraIsMoving$.next(false);
+				//this.cameraIsMoving = false;
+				//console.log('camerastop')
+				//this.cameraIsMoving$.next(false);
 				this.timer = 0;
 			});
 
@@ -282,20 +282,14 @@ export class SketchfabService {
 			//this._updateCamera();
 		}
 
-		const onTick2 = () => {
-			if (!this.cameraMoving) {
-				this._rotateCamera(positionInit, targetInit);
-			}
-
-			requestAnimationFrame(onTick2);
-		};
-
-		onTick2();
+		this._rotateCamera(positionInit, targetInit);
+		requestAnimationFrame(() => this._onTick(positionInit, targetInit));
 	}
 
 	//when the user click in the 3d space, hide both annotations, descriptions and dropdownmenu
 	private _onClick(camera: any) {
-
+		this.spinning = false;
+		this.cameraIsMoving = false;
 		this.api.getCameraLookAt((err: any, camera: any) => {
 			console.log("camera: ", camera);
 			const posX = camera.position[0].toFixed(3);
@@ -322,7 +316,7 @@ export class SketchfabService {
 	_rotateCamera(positionInit: any, targetInit: any) {
 		this.time = (this.frames) * (Math.PI / 180); //xy plane;
 
-		this.time = this.time * this.spinVelocity;
+		this.time = this.time * 0.5;
 
 		this.radius = this.distance3d(positionInit, targetInit);
 
@@ -335,6 +329,7 @@ export class SketchfabService {
 
 		// make the model spinn
 		if (this.spinning) {
+			this.cameraIsMoving = true;
 			this.api.lookat([this.x, this.y, positionInit[2]], targetInit, 0.00);
 		}
 	}
@@ -365,29 +360,16 @@ export class SketchfabService {
 		this.api.setEnvironment({ rotation: states[3].rotation });
 	}
 
-	public setInitCameraPos(currentIframe: number, cameraPositionInit: number[], cameraTargetInit: number[], api: any, resetModelTime: number, readyToRotate: (err: any) => void) {
-
+	public setInitCameraPos(currentIframe: number, cameraPositionInit: number[], cameraTargetInit: number[], api: any, resetModelTime: number): Observable<string> {
+		//this.frames = 0.0;
+		this.cameraIsMoving = false;
 		api.setCameraLookAt(cameraPositionInit, cameraTargetInit, resetModelTime, (err: any) => {
 			if (!err) {
-				// TODO fix dynamic rotation axis
-				// Probably multiply with the node matrix here if the models pivot is rotated
-				const angle = 0;
-				api.rotate(this.rootMatrixNodeId, [angle, this.rotAxis.x, this.rotAxis.y, this.rotAxis.z], {
-					duration: resetModelTime,
-					easing: 'easeLinear',
-				}, () => {
 
-					// Wait for camera to stop
-					this.cameraIsMoving$.pipe(
-						filter(cameraIsMoving => !cameraIsMoving),
-						tap(() => {
-							readyToRotate(false);
-						}),
-						takeWhile(cameraIsMoving => cameraIsMoving),
-					).subscribe();
-				});
 			}
 		});
+
+		return of('message3');
 	}
 
 	public setHDtexture(callback: any) {

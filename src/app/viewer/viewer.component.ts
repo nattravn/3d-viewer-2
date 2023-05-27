@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy,  Component, ElementRef, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { WordpressService } from '../services/wordpress.service';
 import { SketchfabService } from '../services/sketchfab.service';
-import { BehaviorSubject, combineLatest, delay, filter, finalize, interval, map, Observable, of, ReplaySubject, Subject, switchMap, take, takeUntil } from 'rxjs';
+import { BehaviorSubject, combineLatest, delay, EMPTY, filter, finalize, interval, map, Observable, of, ReplaySubject, Subject, switchMap, take, takeUntil, takeWhile, tap } from 'rxjs';
 import { WpPostModel } from '../models/wp-post.model';
 import { InfoBox } from '../models/info-box-content.model';
 import { Annotation } from '../models/annotation.model';
@@ -50,7 +50,7 @@ export class ViewerComponent implements OnInit {
 
 	public selectedSketchfabService$ = new ReplaySubject<SketchfabService>(1);
 
-	private destroy$ = new Subject<void>();
+	private startSpinningInterval$ = new BehaviorSubject<boolean>(true);
 
 	constructor(
 		public wordpressService: WordpressService,
@@ -124,30 +124,44 @@ export class ViewerComponent implements OnInit {
 
 		// Do the spinning
 		interval(1000).pipe(
-			takeUntil(this.destroy$),
+			switchMap(() => this.startSpinningInterval$),
+			filter(destroy => destroy),
 			switchMap(() => this.selectedSketchfabService$),
-			map(selectedSketchfabService => {
-				if (!selectedSketchfabService.cameraIsMoving && selectedSketchfabService.timer > 10) {
+			switchMap(selectedSketchfabService => {
+				//console.log("cameraIsMoving: ", selectedSketchfabService.cameraIsMoving)
+				//console.log("selectedSketchfabService.spinning: ", selectedSketchfabService.spinning)
+				if (!selectedSketchfabService.cameraIsMoving && selectedSketchfabService.timer % 10 == 0 && selectedSketchfabService.timer > 10) {
+					// FIXME selectedSketchfabService.lightStates is only loaded after some seconds
 					selectedSketchfabService.setLights(selectedSketchfabService.lightStates);
-					selectedSketchfabService.setInitCameraPos(0, selectedSketchfabService.annotations[0].cameraPosition, selectedSketchfabService.annotations[0].cameraTarget, selectedSketchfabService.api, selectedSketchfabService.resetModelTime, (err: boolean) => {
-						console.log("error: ", err);
-						if (!err) {
-							console.log("start rotating");
-							selectedSketchfabService.updateRotation(0, selectedSketchfabService.rootMatrixNodeId, selectedSketchfabService.api);
-						}
-					});
+					this.startSpinningInterval$.next(false);
+
+
+					return selectedSketchfabService.setInitCameraPos(0, selectedSketchfabService.annotations[0].cameraPosition, selectedSketchfabService.annotations[0].cameraTarget, selectedSketchfabService.api, selectedSketchfabService.resetModelTime).pipe(
+						delay(selectedSketchfabService.resetModelTime * 1000 + 1000),
+						map(() => {
+							// Most reset frame after init position otherwise the first spinning frame will show an already rotated model
+							selectedSketchfabService.frames = 0.0;
+							selectedSketchfabService.spinning = true;
+
+							this.startSpinningInterval$.next(true);
+							return selectedSketchfabService;
+
+						}),
+					);
 				} else {
-					// Do nothing
+					return of(selectedSketchfabService);
 				}
+
+			}),
+			tap((selectedSketchfabService) => {
 				selectedSketchfabService.timer++;
-				return selectedSketchfabService.timer;
 			}),
 		).subscribe();
 	}
 
 	ngOnDestroy() {
-		this.destroy$.next();
-   		this.destroy$.complete();
+		this.startSpinningInterval$.next(false);
+   		this.startSpinningInterval$.complete();
 	}
 
 	private initWPpostData(post: WpPostModel, index: number, sketchfabServices: SketchfabService[]): SketchfabService {
@@ -203,6 +217,8 @@ export class ViewerComponent implements OnInit {
 	}
 
 	public selectModel(sketchfabServicePrev: SketchfabService, sketchfabServiceNext: SketchfabService, selectedLanguage: 'swedish' | 'english') {
+		sketchfabServicePrev.spinning = false;
+
 		if (sketchfabServiceNext.modelIndex != null) {
 			this.viewerRef.get(sketchfabServiceNext.modelIndex)?.nativeElement.scrollIntoView();
 		}
@@ -210,7 +226,14 @@ export class ViewerComponent implements OnInit {
 		sketchfabServicePrev.setLDtexture((readyTexture: any) => {
 			// remove loading bar and loadTextureLayer
 			if (readyTexture) {
-				sketchfabServicePrev.setInitCameraPos(0, sketchfabServicePrev.annotations[0].cameraPosition, sketchfabServicePrev.annotations[0].cameraTarget, sketchfabServicePrev.api, 0.01, () => { });
+				sketchfabServicePrev.setInitCameraPos(0, sketchfabServicePrev.annotations[0].cameraPosition, sketchfabServicePrev.annotations[0].cameraTarget, sketchfabServicePrev.api, 0.01).pipe(
+					delay(sketchfabServicePrev.resetModelTime),
+					tap(() => {
+						sketchfabServicePrev.cameraIsMoving = false;
+						this.startSpinningInterval$.next(true);
+
+					}),
+				);
 			}
 		});
 
@@ -275,21 +298,29 @@ export class ViewerComponent implements OnInit {
 		this.annotationTitle$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
 	}
 
-	public resetModel(modelChanged: boolean, lightStates: Array<number[]> | null, sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english') {
-
+	public resetModel$(lightStates: Array<number[]> | null, sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): Observable<string> {
+		sketchfabService.spinning = false;
 		if (!lightStates) {
-			return;
+			return of('message1');
 		}
 		this.selectedAnnotation = 0;
 
 		// reset light positions
-		sketchfabService.setLights(lightStates);
-
-		// if modelChanged is true use animation time
-		sketchfabService.setInitCameraPos(0, sketchfabService.annotations[0].cameraPosition, sketchfabService.annotations[0].cameraTarget, sketchfabService.api, sketchfabService.resetModelTime, () => { });
-
+		if (lightStates.length) {
+			sketchfabService.setLights(lightStates);
+		}
 		this.annotationDescription$.next(sketchfabService.annotations[0][selectedLanguage].description);
 		this.annotationTitle$.next(sketchfabService.annotations[0][selectedLanguage].heading);
+
+		return sketchfabService.setInitCameraPos(0, sketchfabService.annotations[0].cameraPosition, sketchfabService.annotations[0].cameraTarget, sketchfabService.api, sketchfabService.resetModelTime).pipe(
+			delay(sketchfabService.resetModelTime * 1000),
+			map(() => {
+				sketchfabService.cameraIsMoving = false;
+				this.startSpinningInterval$.next(true);
+				return 'message2';
+			}),
+
+		);
 	}
 
 	public toggleLanguage(annotations: any, selectedLanguage: 'swedish' | 'english', selectedAnnotation: number) {
