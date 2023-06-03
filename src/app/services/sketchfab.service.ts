@@ -32,8 +32,6 @@ export class SketchfabService {
 
 	public cameraIsMoving$ = new BehaviorSubject(false);
 
-	public rootMatrixNodeId = null;
-
 	public annotations: Array<Annotation>;
 
 	public helpInfo: InfoBox;
@@ -224,19 +222,6 @@ export class SketchfabService {
 			api.addEventListener('click', () => {
 				this._onClick(this.camera);
 			});
-
-			api.getRootMatrixNode((err: any, id: any, m: any ) => {
-				// TODO set this in a better way
-				if (!err) {
-					this.rootMatrixNodeId = id;
-				}
-			});
-
-			api.getMatrix(128, (err: any, matrix: any) => {
-				if (!err) {
-					window.console.log('Matrix:', matrix);
-				}
-			});
 		});
 	}
 
@@ -323,7 +308,7 @@ export class SketchfabService {
 	_rotateCamera(positionInit: any, targetInit: any) {
 		this.time = (this.frames) * (Math.PI / 180); //xy plane;
 
-		this.time = this.time * 0.5;
+		this.time = this.time * this.spinVelocity;
 
 		this.radius = this.distance3d(positionInit, targetInit);
 
@@ -370,33 +355,41 @@ export class SketchfabService {
 	public setInitCameraPos(currentIframe: number, cameraPositionInit: number[], cameraTargetInit: number[], api: any, resetModelTime: number): Observable<string> {
 		//this.frames = 0.0;
 		this.cameraIsMoving = false;
-		api.setCameraLookAt(cameraPositionInit, cameraTargetInit, resetModelTime, (err: any) => {
-			if (!err) {
-
-			}
-		});
+		return new Observable<string>((observer) =>
+			api.setCameraLookAt(cameraPositionInit, cameraTargetInit, resetModelTime, (err: any) => {
+				if (!err) {
+					observer.next('debug');
+				} else {
+					observer.next('debug');
+				}
+				observer.complete();
+				return of('debug');
+			}),
+		);
 
 		return of('message3');
 	}
 
-	public setHDtexture(callback: any) {
-		this.api.setTextureQuality('hd', (readyTexture: any) => {
-			console.log('Texture quality set to high definition');
-			readyTexture = true;
-			this.textureQuality$.next('HD');
-			callback(readyTexture);
-			return true;
-		});
+	public setHDtexture(): Observable<boolean> {
+		return new Observable<boolean>((observer) =>
+			this.api.setTextureQuality('hd', (readyTexture: any) => {
+				console.log('Texture quality set to high definition');
+				this.textureQuality$.next('HD');
+				observer.next(true);
+				observer.complete();
+			}),
+		);
 	}
 
-	public setLDtexture(callback: any) {
-		this.textureQuality$.next('LD');
-		this.api.setTextureQuality('ld', (readyTexture: any) => {
-			console.log('Texture quality set to low definition');
-			readyTexture = true;
+	public setLDtexture(): Observable<boolean> {
 
-			callback(readyTexture);
-			return true;
-		});
+		return new Observable<boolean>((observer) =>
+			this.api.setTextureQuality('ld', (readyTexture: any) => {
+				console.log('Texture quality set to low definition');
+				this.textureQuality$.next('LD');
+				observer.next(true);
+				observer.complete();
+			}),
+		);
 	}
 }

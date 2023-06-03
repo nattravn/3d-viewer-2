@@ -97,29 +97,35 @@ export class ViewerComponent implements OnInit {
 				);
 			}),
 			takeUntil(this.allLoaded$),
+
 			switchMap((viewers: SketchfabService[]) => {
 				// start next viewer after the previous ar done (serially)
 				this.viewersReady$.next(`Models loading: 0/${viewers.length} loaded`);
+				// Should this be included in the chain instead?
 				viewers[0].api.start();
-				viewers[0].setHDtexture((readyTexture: any) => { });
 
-				this.selectedSketchfabService$.next(viewers[0]);
+				// TODO Not working texture will still be LD, must update the frame in some way
+				 return viewers[0].setHDtexture().pipe(
+					filter(texture => texture),
+					switchMap(() => {
+						this.selectedSketchfabService$.next(viewers[0]);
 
-				viewers.forEach((viewer: any, i: number)=> {
-					viewer.api.addEventListener('viewerready', () => {
-						//viewer.api.start();
-						if (i < viewers.length - 1) {
-							this.viewersReady$.next(`Models loading: ${i + 1}/${viewers.length} loaded`);
-							viewers[i + 1].api.start();
-						} else {
-							this.allLoaded$.next(true);
-							this.allLoaded$.complete();
-							this.viewersReady$.next(`Models loading: ${i + 1}/${viewers.length} loaded`);
-						}
-					});
-				});
-				return of(viewers);
-
+						viewers.forEach((viewer: any, i: number)=> {
+							viewer.api.addEventListener('viewerready', () => {
+								//viewer.api.start();
+								if (i < viewers.length - 1) {
+									this.viewersReady$.next(`Models loading: ${i + 1}/${viewers.length} loaded`);
+									viewers[i + 1].api.start();
+								} else {
+									this.allLoaded$.next(true);
+									this.allLoaded$.complete();
+									this.viewersReady$.next(`Models loading: ${i + 1}/${viewers.length} loaded`);
+								}
+							});
+						});
+						return of(viewers);
+					}),
+				 );
 			}),
 			finalize(() => {
 				console.log("all done");
@@ -229,38 +235,38 @@ export class ViewerComponent implements OnInit {
 		return sketchfabServices;
 	}
 
-	public selectModel(sketchfabServicePrev: SketchfabService, sketchfabServiceNext: SketchfabService, selectedLanguage: 'swedish' | 'english') {
+	public selectModel$(sketchfabServicePrev: SketchfabService, sketchfabServiceNext: SketchfabService, selectedLanguage: 'swedish' | 'english'): Observable<boolean> {
 		sketchfabServicePrev.spinning = false;
 
 		if (sketchfabServiceNext.modelIndex != null) {
 			this.viewerRef.get(sketchfabServiceNext.modelIndex)?.nativeElement.scrollIntoView();
 		}
 
-		sketchfabServicePrev.setLDtexture((readyTexture: any) => {
-			// remove loading bar and loadTextureLayer
-			if (readyTexture) {
-				sketchfabServicePrev.setInitCameraPos(0, sketchfabServicePrev.annotations[0].cameraPosition, sketchfabServicePrev.annotations[0].cameraTarget, sketchfabServicePrev.api, 0.01).pipe(
+		return sketchfabServicePrev.setLDtexture().pipe(
+			filter(texture => texture),
+			switchMap(() => {
+				return sketchfabServicePrev.setInitCameraPos(0, sketchfabServicePrev.annotations[0].cameraPosition, sketchfabServicePrev.annotations[0].cameraTarget, sketchfabServicePrev.api, 0.01).pipe(
 					delay(sketchfabServicePrev.resetModelTime),
-					tap(() => {
+					switchMap(() => {
 						sketchfabServicePrev.cameraIsMoving = false;
 						this.startSpinningInterval$.next(true);
+						this.selectedSketchfabService$.next(sketchfabServiceNext);
+
+						return sketchfabServiceNext.setHDtexture().pipe(
+							filter(texture => texture),
+							tap(() => {
+								console.log('Texture loaded hd');
+								this.annotationDescription$.next(sketchfabServiceNext.annotations[0][selectedLanguage].description);
+								this.annotationTitle$.next(sketchfabServiceNext.annotations[0][selectedLanguage].heading);
+
+								return true;
+							}),
+						);
 
 					}),
 				);
-			}
-		});
-
-		this.selectedSketchfabService$.next(sketchfabServiceNext);
-
-		sketchfabServiceNext.setHDtexture((readyTexture: any) => {
-			// remove loading bar and loadTextureLayer
-			if (readyTexture) {
-				console.log('Texture loaded hd');
-			}
-		});
-
-		this.annotationDescription$.next(sketchfabServiceNext.annotations[0][selectedLanguage].description);
-		this.annotationTitle$.next(sketchfabServiceNext.annotations[0][selectedLanguage].heading);
+			}),
+		);
 	}
 
 	public showAnnotationBlock(annotationBlockIsVisible: boolean, selectedSketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): void {
@@ -314,7 +320,7 @@ export class ViewerComponent implements OnInit {
 	public resetModel$(lightStates: Array<number[]> | null, sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): Observable<string> {
 		sketchfabService.spinning = false;
 		if (!lightStates) {
-			return of('message1');
+			return of('debug');
 		}
 		this.selectedAnnotation = 0;
 
@@ -327,10 +333,10 @@ export class ViewerComponent implements OnInit {
 
 		return sketchfabService.setInitCameraPos(0, sketchfabService.annotations[0].cameraPosition, sketchfabService.annotations[0].cameraTarget, sketchfabService.api, sketchfabService.resetModelTime).pipe(
 			delay(sketchfabService.resetModelTime * 1000),
-			tap(() => {
+			map(() => {
 				sketchfabService.cameraIsMoving = false;
 				this.startSpinningInterval$.next(true);
-				return 'message2';
+				return 'debug';
 			}),
 		);
 	}

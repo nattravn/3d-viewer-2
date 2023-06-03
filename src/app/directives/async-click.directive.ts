@@ -59,7 +59,6 @@ export class AsyncClickDirective implements OnChanges, OnDestroy {
 		//this.pending = true;
 		this.disable();
 		//const enable = () => this.enable();
-		console.log('r: ', r);
 		if (typeof r.subscribe === 'function') {
 			this.subscription = r.pipe(
 				finalize(() => {

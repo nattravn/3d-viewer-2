@@ -14,74 +14,80 @@
 	helpInfoText: helpInfoText$ | async,
 	showClickableLayer: showClickableLayer$ | async
 } as source">
-		<div class="viewer" id="viewer">
-			<ul>
-				<li *ngFor="let post of source.posts; let i = index" class="wp-post" >
-					<div *ngIf="source.selectedSketchfabService && source.showClickableLayer" #spinningLayer class="clickable-layer" (click)="stopSpinning(spinningLayer, source.selectedSketchfabService)"></div>
 
-					<div *ngIf="source.allLoaded && (source.selectedSketchfabService?.textureQuality$ | async) == 'LD' && source.selectedSketchfabService!.modelIndex === i" class="load-texture-layer"></div>
+	<!-- loading screen -->
+	<div class="loading-models" *ngIf="!source.allLoaded">
+		{{source.viewersReady}}
+	</div>
 
-					<div class="sketchfab-embed-wrapper">
-						<iframe #viewerRef src="" frameborder="0" allowfullscreen="" mozallowfullscreen="true"></iframe>
-					</div>
-				</li>
-			</ul>
-		</div>
+	<div class="viewer" id="viewer">
+		<ul>
+			<li *ngFor="let post of source.posts; let i = index" class="wp-post" >
+				<div *ngIf="source.selectedSketchfabService && source.showClickableLayer" #spinningLayer class="clickable-layer" (click)="stopSpinning(spinningLayer, source.selectedSketchfabService)"></div>
 
-<!-- TODO buld image url in ts file -->
-		<ul class="menu-nav" *ngIf="source.selectedSketchfabService && source.selectedLanguage">
-			<li *ngFor="let sketchfabServiceNext of source.sketchfabServices; let i = index"  >
-				Texture quality: {{sketchfabServiceNext.textureQuality$ | async}}
-				<img *ngIf="sketchfabServiceNext && source.selectedSketchfabService"
-				(click)="selectModel(source.selectedSketchfabService, sketchfabServiceNext, source.selectedLanguage)"
-				src="{{sketchfabServiceNext.imageUrl}}"
-				fallback="/assets/{{sketchfabServiceNext.slug}}.png"
-				alt="{{baseUrl}}/wp-content/uploads/{{sketchfabServiceNext.slug}}.png">
-			</li>
-			<li>
-				<button [asyncClick]="resetModel$.bind(this, source.selectedSketchfabService.lightStates , source.selectedSketchfabService, source.selectedLanguage)">Reset</button>
-				<img src="/assets/reset.png" alt="">
-			</li>
-			<li class="menu-nav__infoButton">
-				<div class="menu-nav__label" (click)="showAnnotationBlock(annotationBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">i</div>
-			</li>
-			<li class="menu-nav__infoButton">
-				<div class="menu-nav__label" (click)="showInfoBlock(infoBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">?</div>
+				<div *ngIf="source.allLoaded && (source.selectedSketchfabService?.textureQuality$ | async) == 'LD' && source.selectedSketchfabService!.modelIndex === i" class="load-texture-layer"></div>
+
+				<div class="sketchfab-embed-wrapper">
+					<iframe #viewerRef src="" frameborder="0" allowfullscreen="" mozallowfullscreen="true"></iframe>
+				</div>
 			</li>
 		</ul>
+	</div>
 
-		<div *ngIf="annotationBlockIsVisible && source.selectedSketchfabService && source.annotationTitle && source.annotationDescription && source.selectedLanguage" class="info-block">
-			<h2>{{source.annotationTitle}}</h2>
-			<p>
-				{{source.annotationDescription}}
-			</p>
-			<span (click)="previousAnnotation(
-				source.selectedSketchfabService,
-				source.selectedLanguage)">
-				prev
-			</span>
+	<!-- TODO buld image url in ts file -->
+	<ul class="menu-nav" *ngIf="source.selectedSketchfabService && source.selectedLanguage">
+		<li *ngFor="let sketchfabServiceNext of source.sketchfabServices; let i = index"  >
+			Texture quality: {{sketchfabServiceNext.textureQuality$ | async}}
+			<img *ngIf="sketchfabServiceNext && source.selectedSketchfabService"
+			[asyncClick]="selectModel$.bind(this, source.selectedSketchfabService, sketchfabServiceNext, source.selectedLanguage)"
+			src="{{sketchfabServiceNext.imageUrl}}"
+			fallback="/assets/{{sketchfabServiceNext.slug}}.png"
+			alt="{{baseUrl}}/wp-content/uploads/{{sketchfabServiceNext.slug}}.png">
+		</li>
+		<li>
+			<button [asyncClick]="resetModel$.bind(this, source.selectedSketchfabService.lightStates , source.selectedSketchfabService, source.selectedLanguage)">Reset</button>
+			<img src="/assets/reset.png" alt="">
+		</li>
+		<li class="menu-nav__infoButton">
+			<div class="menu-nav__label" (click)="showAnnotationBlock(annotationBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">i</div>
+		</li>
+		<li class="menu-nav__infoButton">
+			<div class="menu-nav__label" (click)="showInfoBlock(infoBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">?</div>
+		</li>
+	</ul>
 
-			<span (click)="showAnnotationBlock(annotationBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">
-				x
-			</span>
+	<div *ngIf="annotationBlockIsVisible && source.selectedSketchfabService && source.annotationTitle && source.annotationDescription && source.selectedLanguage" class="info-block">
+		<h2>{{source.annotationTitle}}</h2>
+		<p>
+			{{source.annotationDescription}}
+		</p>
+		<span (click)="previousAnnotation(
+			source.selectedSketchfabService,
+			source.selectedLanguage)">
+			prev
+		</span>
 
-			<span (click)="nextAnnotation(
-				source.selectedSketchfabService,
-				source.selectedLanguage)">
-				next
-			</span>
+		<span (click)="showAnnotationBlock(annotationBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">
+			x
+		</span>
 
-			<div>
-				<span (click)="toggleLanguage(source.selectedSketchfabService.annotations[selectedAnnotation].swedish, 'swedish', selectedAnnotation)">Svenska/</span>
-				<span (click)="toggleLanguage(source.selectedSketchfabService.annotations[selectedAnnotation].english, 'english', selectedAnnotation)">Engelska</span>
-			</div>
+		<span (click)="nextAnnotation(
+			source.selectedSketchfabService,
+			source.selectedLanguage)">
+			next
+		</span>
+
+		<div>
+			<span (click)="toggleLanguage(source.selectedSketchfabService.annotations[selectedAnnotation].swedish, 'swedish', selectedAnnotation)">Svenska/</span>
+			<span (click)="toggleLanguage(source.selectedSketchfabService.annotations[selectedAnnotation].english, 'english', selectedAnnotation)">Engelska</span>
 		</div>
+	</div>
 
-		<div *ngIf="infoBlockIsVisible" class="info-block">
-			<h2>{{source.helpInfoHeading}}</h2>
-		</div>
+	<div *ngIf="infoBlockIsVisible" class="info-block">
+		<h2>{{source.helpInfoHeading}}</h2>
+	</div>
 
-		<app-menu></app-menu>
+	<app-menu></app-menu>
 
-		<app-annotation-nav></app-annotation-nav>
+	<app-annotation-nav></app-annotation-nav>
 </ng-container>
