@@ -49,10 +49,10 @@ export class PostMetaFields {
 
 	public orbit_zoom_factor: number;
 
-	public log_camera: string;
+	public log_camera: boolean;
 
 	public edit_lock: string;
 
-	public rot_axis: Array<number[]>;
+	public rot_axis: { x:number, y:number, z:number };
 }
 

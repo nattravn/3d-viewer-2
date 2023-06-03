@@ -63,12 +63,51 @@ $menu-scale: 1;
 .viewer {
 	li {
 		list-style: none;
+
+		.clickable-layer{
+			width: 100%;
+			height: 100vh;
+			position: absolute;
+			z-index: 1;
+		}
+
+		@keyframes spinner {
+			to {transform: rotate(360deg);}
+		}
+
+		.load-texture-layer{
+			position: absolute;
+			width: 100%;
+			height: 100%;
+			background: rgb(0 0 0 / 21%);
+		}
+		.load-texture-layer:before {
+			display: block;
+			content: '';
+			box-sizing: border-box;
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			min-width: 500px;
+			height: 500px;
+			margin-top: -250px;
+			margin-left: -250px;
+			border-radius: 50%;
+			border: 2px solid transparent;
+			border-top-color: #fff;
+			border-bottom-color: #fff;
+			animation: spinner 1.5s ease infinite;
+		}
+
+		.sketchfab-embed-wrapper{
+			height: 100vh;
+			iframe {
+				width: 100%;
+				height: 100vh;
+			}
+		}
 	}
 }
-
-
-
-
 
 .info-block {
 	width: 700px;
@@ -79,54 +118,4 @@ $menu-scale: 1;
     position: fixed;
     top: 835px;
     left: 650px;
-
 }
-
-
-.sketchfab-embed-wrapper{
-	height: 100vh;
-	iframe {
-		width: 100%;
-		height: 100vh;
-	}
-}
-
-
-.load-texture-layer{
-	width: 100%;
-	height: 100%;
-	display: block;
-	position: absolute;
-	top:0px;
-	background-color: rgba(0,0,0,0.0);
-	z-index: 999;
-}
-
-@keyframes spinner {
-	to {transform: rotate(360deg);}
-  }
-
-.spinner{
-	position: absolute;
-    width: 100%;
-	height: 100%;
-    background: rgb(0 0 0 / 21%);
-}
-.spinner:before {
-	display: block;
-	content: '';
-	box-sizing: border-box;
-	position: absolute;
-	top: 50%;
-	left: 50%;
-	min-width: 500px;
-	height: 500px;
-	margin-top: -250px;
-	margin-left: -250px;
-	border-radius: 50%;
-	border: 2px solid transparent;
-	border-top-color: #fff;
-	border-bottom-color: #fff;
-	animation: spinner 1.5s ease infinite;
-}
-

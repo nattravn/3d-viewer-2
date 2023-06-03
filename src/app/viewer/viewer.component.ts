@@ -1,11 +1,11 @@
-import { ChangeDetectionStrategy,  Component, ElementRef, OnInit, QueryList, ViewChild, ViewChildren } from '@angular/core';
+import { ChangeDetectionStrategy,  Component, ElementRef, OnInit, QueryList, Renderer2, ViewChildren } from '@angular/core';
 import { WordpressService } from '../services/wordpress.service';
 import { SketchfabService } from '../services/sketchfab.service';
-import { BehaviorSubject, combineLatest, delay, EMPTY, filter, finalize, interval, map, Observable, of, ReplaySubject, Subject, switchMap, take, takeUntil, takeWhile, tap } from 'rxjs';
+import { BehaviorSubject, combineLatest, delay, filter, finalize, interval, map, Observable, of, ReplaySubject, Subject, switchMap, take, takeUntil, tap } from 'rxjs';
 import { WpPostModel } from '../models/wp-post.model';
 import { InfoBox } from '../models/info-box-content.model';
 import { Annotation } from '../models/annotation.model';
-
+import { SketchFabModelData } from '../models/sketchfab-model-data';
 
 
 @Component({
@@ -15,10 +15,6 @@ import { Annotation } from '../models/annotation.model';
 	changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ViewerComponent implements OnInit {
-
-	@ViewChild('postContainer') postContainer: ElementRef;
-
-	@ViewChild('iframeContainer') iframeContainerRef: ElementRef;
 
 	/** Get handle on cmp tags in the template */
 	@ViewChildren('viewerRef') viewerRef:QueryList<ElementRef>;
@@ -33,6 +29,8 @@ export class ViewerComponent implements OnInit {
 
 	public helpInfoText$ = new ReplaySubject<string>(1);
 
+	public showClickableLayer$ = new ReplaySubject<boolean>(1);
+
 	public selectedLanguage$ = new BehaviorSubject<'swedish' | 'english'>('english');
 
 	public viewersReady$: BehaviorSubject<string> = new BehaviorSubject<string>('Loading iframes');
@@ -46,34 +44,41 @@ export class ViewerComponent implements OnInit {
 
 	public selectedAnnotation = 0;
 
-	public sketchfabServices$: Array<Observable<SketchfabService>> = [];
-
 	public selectedSketchfabService$ = new ReplaySubject<SketchfabService>(1);
 
 	private startSpinningInterval$ = new BehaviorSubject<boolean>(true);
 
+	public sketchfabServices$: Observable<SketchfabService[]>;
+
+	/**
+	 * Subject to to complete subscriptions on destroy.
+	 */
+	private untilDestroyed$ = new Subject<boolean>();
+
 	constructor(
 		public wordpressService: WordpressService,
 		public sketchfabService: SketchfabService,
+		private renderer: Renderer2,
+		private el: ElementRef,
 	) {}
 
 	ngOnInit(): void {
 		// https://stackblitz.com/edit/rxjs-5-progress-bar-wxdxwe?devtoolsheight=50&file=index.ts
 
-		const sketchfabServices: Array<SketchfabService> = [];
-
-		this.wordpressService.getPostsFromWp().pipe(
+		this.sketchfabServices$ = this.wordpressService.getPostsFromWp().pipe(
+			takeUntil(this.untilDestroyed$),
 			delay(1),
 			take(1),
 			switchMap((posts: WpPostModel[]) => {
+				const sketchfabServices$: Array<Observable<SketchfabService>> = [];
 
 				posts.forEach((post, i) => {
-					const sketchfabService = this.initWPpostData(post, i, sketchfabServices);
-					this.sketchfabServices$.push(of(sketchfabService));
+					const sketchfabService = this.initWPpostData(post, i);
+					sketchfabServices$.push(of(sketchfabService));
 				});
 
 				return combineLatest(
-					this.sketchfabServices$,
+					sketchfabServices$,
 				);
 			}),
 			switchMap(resolvedSketchfabServices => {
@@ -82,14 +87,13 @@ export class ViewerComponent implements OnInit {
 				resolvedSketchfabServices.forEach((sketchfabService) => {
 					apireadyArray$.push(sketchfabService.apiready$);
 				});
-
 				return combineLatest(
 					apireadyArray$,
 				).pipe(
 					filter((apireadyArray) => {
 						return apireadyArray.every(elem => elem) ? true : false;
 					}),
-					map(() => sketchfabServices),
+					map(() => resolvedSketchfabServices),
 				);
 			}),
 			takeUntil(this.allLoaded$),
@@ -114,16 +118,17 @@ export class ViewerComponent implements OnInit {
 						}
 					});
 				});
-				return of(false);
+				return of(viewers);
 
 			}),
 			finalize(() => {
 				console.log("all done");
 			}),
-		).subscribe();
+		);
 
 		// Do the spinning
 		interval(1000).pipe(
+			takeUntil(this.untilDestroyed$),
 			switchMap(() => this.startSpinningInterval$),
 			filter(destroy => destroy),
 			switchMap(() => this.selectedSketchfabService$),
@@ -142,6 +147,7 @@ export class ViewerComponent implements OnInit {
 							// Most reset frame after init position otherwise the first spinning frame will show an already rotated model
 							selectedSketchfabService.frames = 0.0;
 							selectedSketchfabService.spinning = true;
+							this.showClickableLayer$.next(true);
 
 							this.startSpinningInterval$.next(true);
 							return selectedSketchfabService;
@@ -162,9 +168,13 @@ export class ViewerComponent implements OnInit {
 	ngOnDestroy() {
 		this.startSpinningInterval$.next(false);
    		this.startSpinningInterval$.complete();
+
+		this.untilDestroyed$.next(true);
+		this.untilDestroyed$.complete();
 	}
 
-	private initWPpostData(post: WpPostModel, index: number, sketchfabServices: SketchfabService[]): SketchfabService {
+	private initWPpostData(post: WpPostModel, index: number): SketchfabService {
+
 		// assigning the annotation data from wordpress to global variables
 		const annotations = new Array<Annotation>;
 		const helpInfo = new InfoBox('', '', '', '');
@@ -190,7 +200,7 @@ export class ViewerComponent implements OnInit {
 		helpInfo.swedish.description = post.post_meta_fields.swe_help_text;
 
 		//new annotation
-		const annotationBounds = {
+		const sketchFabModelData: SketchFabModelData = {
 			animationTime: post.post_meta_fields.animation_time,
 			resetModelTime: post.post_meta_fields.reset_model_time,
 			spinVelocity: post.post_meta_fields.spin_velocity,
@@ -198,22 +208,25 @@ export class ViewerComponent implements OnInit {
 			orbitRotationFactor: post.post_meta_fields.orbit_rotation_factor,
 			orbitZoomFactor: post.post_meta_fields.orbit_zoom_factor,
 			logCamera: post.post_meta_fields.log_camera,
-			rot_axis: post.post_meta_fields.rot_axis,
+			rotAxis: post.post_meta_fields.rot_axis,
+			imageUrl: post.post_meta_fields.image_url,
 			annotations: annotations,
 			helpInfo: helpInfo,
+			slug: post.slug,
 			modelIndex: index,
 		};
 
-		sketchfabServices.push(new SketchfabService());
-
-		//const iframe = document.getElementById(`api-frame-${post.id}`);
 		const iframe = this.viewerRef.get(index)?.nativeElement;
 
+		const sketchfabServices = new SketchfabService();
+
 		if (iframe) {
-			const client = sketchfabServices[index].init(iframe, post.post_meta_fields.model_id, annotationBounds, 0);
+			sketchfabServices.init(iframe, post.post_meta_fields.model_id, sketchFabModelData, 0);
+		} else {
+			console.error('iframe element is: ', iframe);
 		}
 
-		return sketchfabServices[index];
+		return sketchfabServices;
 	}
 
 	public selectModel(sketchfabServicePrev: SketchfabService, sketchfabServiceNext: SketchfabService, selectedLanguage: 'swedish' | 'english') {
@@ -314,12 +327,11 @@ export class ViewerComponent implements OnInit {
 
 		return sketchfabService.setInitCameraPos(0, sketchfabService.annotations[0].cameraPosition, sketchfabService.annotations[0].cameraTarget, sketchfabService.api, sketchfabService.resetModelTime).pipe(
 			delay(sketchfabService.resetModelTime * 1000),
-			map(() => {
+			tap(() => {
 				sketchfabService.cameraIsMoving = false;
 				this.startSpinningInterval$.next(true);
 				return 'message2';
 			}),
-
 		);
 	}
 
@@ -328,5 +340,12 @@ export class ViewerComponent implements OnInit {
 		this.annotationTitle$.next(annotations.titles[selectedAnnotation]);
 
 		this.selectedLanguage$.next(selectedLanguage);
+	}
+
+	public stopSpinning(spinningElement: any, sketchfabService: SketchfabService) {
+		sketchfabService.spinning = false;
+		this.showClickableLayer$.next(false);
+		sketchfabService.cameraIsMoving = false;
+		console.log('spinningElement: ', spinningElement);
 	}
 }

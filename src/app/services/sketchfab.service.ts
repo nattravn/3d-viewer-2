@@ -6,6 +6,7 @@ import { BehaviorSubject, filter, Observable, of, ReplaySubject, takeWhile, tap 
 import { Camera } from '../models/camera.model';
 import { InfoBox } from '../models/info-box-content.model';
 import { Annotation } from '../models/annotation.model';
+import { SketchFabModelData } from '../models/sketchfab-model-data';
 
 @Injectable()
 export class SketchfabService {
@@ -15,7 +16,7 @@ export class SketchfabService {
 
 	public client: any = null;
 
-	public modelIndex = null;
+	public modelIndex: number | undefined;
 
 	public apiready$ = new ReplaySubject<boolean>(1);
 
@@ -80,6 +81,10 @@ export class SketchfabService {
 
 	public frames = 0;
 
+	public imageUrl = '';
+
+	public slug: string;
+
 	constructor(
 	) {
 		this.apiready$.next(false);
@@ -88,21 +93,23 @@ export class SketchfabService {
 	public init(
 		iframe: any,
 		uid: any,
-		annotationBounds: any,
+		sketchFabModelData: SketchFabModelData,
 		currentIframe: any,
 	): any {
 		// TODO this is async data, dont set it to this
-		this.animationTime = annotationBounds.animationTime;
-		this.resetModelTime = annotationBounds.resetModelTime;
-		this.spinVelocity = annotationBounds.spinVelocity;
-		this.orbitPanFactor = annotationBounds.orbitPanFactor;
-		this.orbitRotationFactor = annotationBounds.orbitRotationFactor;
-		this.orbitZoomFactor = annotationBounds.orbitZoomFactor;
-		this.logCamera = annotationBounds.logCamera;
-		this.rotAxis = annotationBounds.rot_axis;
-		this.annotations = annotationBounds.annotations;
-		this.helpInfo = annotationBounds.helpInfo;
-		this.modelIndex = annotationBounds.modelIndex;
+		this.animationTime = sketchFabModelData.animationTime;
+		this.resetModelTime = sketchFabModelData.resetModelTime;
+		this.spinVelocity = sketchFabModelData.spinVelocity;
+		this.orbitPanFactor = sketchFabModelData.orbitPanFactor;
+		this.orbitRotationFactor = sketchFabModelData.orbitRotationFactor;
+		this.orbitZoomFactor = sketchFabModelData.orbitZoomFactor;
+		this.logCamera = sketchFabModelData.logCamera;
+		this.rotAxis = sketchFabModelData.rotAxis;
+		this.annotations = sketchFabModelData.annotations;
+		this.helpInfo = sketchFabModelData.helpInfo;
+		this.modelIndex = sketchFabModelData.modelIndex;
+		this.imageUrl = sketchFabModelData.imageUrl;
+		this.slug = sketchFabModelData.slug;
 
 		// By default, the latest version of the viewer API will be used.
 		const client = new Sketchfab(iframe);
