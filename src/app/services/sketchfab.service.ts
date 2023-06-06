@@ -4,7 +4,7 @@ import { Injectable } from '@angular/core';
 import Sketchfab from '@sketchfab/viewer-api';
 import { BehaviorSubject, filter, Observable, of, ReplaySubject, takeWhile, tap } from 'rxjs';
 import { Camera } from '../models/camera.model';
-import { InfoBox } from '../models/info-box-content.model';
+import { InfoBox, InfoBoxContent } from '../models/info-box-content.model';
 import { Annotation } from '../models/annotation.model';
 import { SketchFabModelData } from '../models/sketchfab-model-data';
 
@@ -34,7 +34,7 @@ export class SketchfabService {
 
 	public annotations: Array<Annotation>;
 
-	public helpInfo: InfoBox;
+	public helpInfo = new InfoBox('', '', '', '');
 
 	//// Private fields
 	private animationTime = 0;
@@ -84,18 +84,7 @@ export class SketchfabService {
 	public slug: string;
 
 	//TODO try to remove 'this' variables
-	constructor(
-	) {
-		this.apiready$.next(false);
-	}
-
-	public init(
-		iframe: any,
-		uid: any,
-		sketchFabModelData: SketchFabModelData,
-		currentIframe: any,
-	): any {
-		// TODO this is async data, dont set it to this
+	constructor(sketchFabModelData: SketchFabModelData) {
 		this.animationTime = sketchFabModelData.animationTime;
 		this.resetModelTime = sketchFabModelData.resetModelTime;
 		this.spinVelocity = sketchFabModelData.spinVelocity;
@@ -109,6 +98,17 @@ export class SketchfabService {
 		this.modelIndex = sketchFabModelData.modelIndex;
 		this.imageUrl = sketchFabModelData.imageUrl;
 		this.slug = sketchFabModelData.slug;
+
+		this.apiready$.next(false);
+	}
+
+	public init(
+		iframe: any,
+		uid: any,
+		currentIframe: any,
+	): any {
+		// TODO this is async data, dont set it to this
+
 
 		// By default, the latest version of the viewer API will be used.
 		const client = new Sketchfab(iframe);

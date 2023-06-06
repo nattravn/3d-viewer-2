@@ -9,6 +9,7 @@ import { HttpClientModule } from '@angular/common/http';
 import { SafeHtmlPipe } from '../pipes/safe-html.pipe';
 import { FallbackImgDirective } from '../directives/my-directive.directive';
 import { AsyncClickDirective } from '../directives/async-click.directive';
+import { SketchFabModelData } from '../models/sketchfab-model-data';
 
 
 @NgModule({
@@ -27,6 +28,7 @@ import { AsyncClickDirective } from '../directives/async-click.directive';
 	providers: [
 		SketchfabService,
 		WordpressService,
+		SketchFabModelData,
 	],
 })
 export class ViewerModule { }

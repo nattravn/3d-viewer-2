@@ -8,7 +8,7 @@
 	selectedSketchfabService: selectedSketchfabService$ | async,
 	sketchfabServices: sketchfabServices$ | async,
 	annotationDescription: annotationDescription$ | async,
-	annotationTitle: annotationTitle$ | async,
+	annotationHeading: annotationHeading$ | async,
 	selectedLanguage: selectedLanguage$ | async,
 	helpInfoHeading: helpInfoHeading$ | async,
 	helpInfoText: helpInfoText$ | async,
@@ -20,7 +20,8 @@
 		{{source.viewersReady}}
 	</div>
 
-	<div class="viewer" id="viewer">
+	<!-- Viewer -->
+	<div class="viewer">
 		<ul>
 			<li *ngFor="let post of source.posts; let i = index" class="wp-post" >
 				<div *ngIf="source.selectedSketchfabService && source.showClickableLayer" #spinningLayer class="clickable-layer" (click)="stopSpinning(spinningLayer, source.selectedSketchfabService)"></div>
@@ -34,7 +35,7 @@
 		</ul>
 	</div>
 
-	<!-- TODO buld image url in ts file -->
+	<!-- Menu -->
 	<ul class="menu-nav" *ngIf="source.selectedSketchfabService && source.selectedLanguage">
 		<li *ngFor="let sketchfabServiceNext of source.sketchfabServices; let i = index"  >
 			<!-- Texture quality: {{sketchfabServiceNext.textureQuality$ | async}} -->
@@ -58,15 +59,16 @@
 		</li>
 	</ul>
 
-	<div *ngIf="annotationBlockIsVisible && source.selectedSketchfabService && source.annotationTitle && source.annotationDescription && source.selectedLanguage" class="info-block">
-		<h2>{{source.annotationTitle}}</h2>
+	<!-- Annotation box -->
+	<div *ngIf="annotationBlockIsVisible && source.selectedSketchfabService && source.selectedLanguage" class="info-block">
+		<h2>{{source.annotationHeading}}</h2>
 		<p>
 			{{source.annotationDescription}}
 		</p>
 
 		<div class="info-block__language">
 			<span (click)="toggleLanguage(source.selectedSketchfabService.annotations[selectedAnnotation].swedish, 'swedish')"
-				[ngClass]="{'info-block__language__selected': source.selectedLanguage === 'swedish'}">Svenska</span>/
+				[ngClass]="{'info-block__language__selected': source.selectedLanguage === 'swedish'}">Svenska</span> /
 			<span (click)="toggleLanguage(source.selectedSketchfabService.annotations[selectedAnnotation].english, 'english')"
 				[ngClass]="{'info-block__language__selected': source.selectedLanguage === 'english'}">Engelska</span>
 		</div>
@@ -90,8 +92,23 @@
 		</div>
 	</div>
 
-	<div *ngIf="infoBlockIsVisible" class="info-block">
+	<!-- Info box -->
+	<div *ngIf="infoBlockIsVisible && source.selectedSketchfabService && source.helpInfoText && source.selectedLanguage" class="info-block">
 		<h2>{{source.helpInfoHeading}}</h2>
+		<p [innerText]="source.helpInfoText"></p>
+
+		<div class="info-block__language">
+			<span (click)="toggleLanguage(source.selectedSketchfabService.helpInfo.swedish, 'swedish')"
+				[ngClass]="{'info-block__language__selected': source.selectedLanguage === 'swedish'}">Svenska</span> /
+			<span (click)="toggleLanguage(source.selectedSketchfabService.helpInfo.english, 'english')"
+				[ngClass]="{'info-block__language__selected': source.selectedLanguage === 'english'}">Engelska</span>
+		</div>
+
+		<div class="info-block__panel">
+			<img (click)="showInfoBlock(infoBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)"
+				src="assets/cross_middle.png"
+				class="info-block__panel__cross">
+		</div>
 	</div>
 
 	<app-menu></app-menu>

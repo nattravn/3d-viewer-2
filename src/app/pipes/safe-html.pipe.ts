@@ -2,7 +2,7 @@ import { Inject, Pipe, PipeTransform, SecurityContext } from '@angular/core';
 import { DomSanitizer, SafeHtml, SafeValue } from '@angular/platform-browser';
 import DOMPurify from 'dompurify';
 
-
+//https://stackoverflow.com/questions/70015443/angular-how-to-display-text-without-the-html-tags
 @Pipe({
 	name: 'safeHtml',
 })

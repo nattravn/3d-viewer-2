@@ -23,7 +23,7 @@ export class ViewerComponent implements OnInit {
 
 	public annotationDescription$ = new ReplaySubject<string>(1);
 
-	public annotationTitle$ = new ReplaySubject<string>(1);
+	public annotationHeading$ = new ReplaySubject<string>(1);
 
 	public helpInfoHeading$ = new ReplaySubject<string>(1);
 
@@ -181,9 +181,7 @@ export class ViewerComponent implements OnInit {
 
 	private initWPpostData(post: WpPostModel, index: number): SketchfabService {
 
-		// assigning the annotation data from wordpress to global variables
 		const annotations = new Array<Annotation>;
-		const helpInfo = new InfoBox('', '', '', '');
 
 		post.post_meta_fields.swe_description.forEach((sweDescription, i) => {
 			annotations.push({
@@ -200,12 +198,16 @@ export class ViewerComponent implements OnInit {
 			});
 		});
 
-		helpInfo.english.heading = post.post_meta_fields.eng_help_heading;
-		helpInfo.english.description = post.post_meta_fields.eng_help_text;
-		helpInfo.swedish.heading = post.post_meta_fields.swe_help_heading;
-		helpInfo.swedish.description = post.post_meta_fields.swe_help_text;
+		console.log("post.post_meta_fields.eng_help_text: ", post.post_meta_fields.eng_help_text);
 
-		//new annotation
+		const helpInfo = new InfoBox(
+			post.post_meta_fields.eng_help_text,
+			post.post_meta_fields.eng_help_heading,
+			post.post_meta_fields.swe_help_text,
+			post.post_meta_fields.swe_help_heading,
+		);
+
+
 		const sketchFabModelData: SketchFabModelData = {
 			animationTime: post.post_meta_fields.animation_time,
 			resetModelTime: post.post_meta_fields.reset_model_time,
@@ -224,10 +226,10 @@ export class ViewerComponent implements OnInit {
 
 		const iframe = this.viewerRef.get(index)?.nativeElement;
 
-		const sketchfabServices = new SketchfabService();
+		const sketchfabServices = new SketchfabService(sketchFabModelData);
 
 		if (iframe) {
-			sketchfabServices.init(iframe, post.post_meta_fields.model_id, sketchFabModelData, 0);
+			sketchfabServices.init(iframe, post.post_meta_fields.model_id, 0);
 		} else {
 			console.error('iframe element is: ', iframe);
 		}
@@ -257,7 +259,7 @@ export class ViewerComponent implements OnInit {
 							tap(() => {
 								console.log('Texture loaded hd');
 								this.annotationDescription$.next(sketchfabServiceNext.annotations[0][selectedLanguage].description);
-								this.annotationTitle$.next(sketchfabServiceNext.annotations[0][selectedLanguage].heading);
+								this.annotationHeading$.next(sketchfabServiceNext.annotations[0][selectedLanguage].heading);
 
 								return true;
 							}),
@@ -271,7 +273,7 @@ export class ViewerComponent implements OnInit {
 
 	public showAnnotationBlock(annotationBlockIsVisible: boolean, selectedSketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): void {
 		this.annotationDescription$.next(selectedSketchfabService.annotations[this.selectedAnnotation][selectedLanguage].description);
-		this.annotationTitle$.next(selectedSketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
+		this.annotationHeading$.next(selectedSketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
 		this.annotationBlockIsVisible = annotationBlockIsVisible ? false : true;
 		this.infoBlockIsVisible = false;
 	}
@@ -281,6 +283,16 @@ export class ViewerComponent implements OnInit {
 		this.helpInfoText$.next(selectedSketchfabService.helpInfo[selectedLanguage].description);
 		this.infoBlockIsVisible = infoBlockIsVisible ? false : true;
 		this.annotationBlockIsVisible = false;
+	}
+
+	public toggleLanguage(boxContent: InfoBoxContent, selectedLanguage: 'swedish' | 'english') {
+		this.annotationDescription$.next(boxContent.description);
+		this.annotationHeading$.next(boxContent.heading);
+
+		this.helpInfoText$.next(boxContent.description);
+		this.helpInfoHeading$.next(boxContent.heading);
+
+		this.selectedLanguage$.next(selectedLanguage);
 	}
 
 	public previousAnnotation(sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): void {
@@ -295,7 +307,7 @@ export class ViewerComponent implements OnInit {
 		);
 
 		this.annotationDescription$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].description);
-		this.annotationTitle$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
+		this.annotationHeading$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
 	}
 
 	public nextAnnotation(sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): void {
@@ -314,7 +326,7 @@ export class ViewerComponent implements OnInit {
 		);
 
 		this.annotationDescription$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].description);
-		this.annotationTitle$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
+		this.annotationHeading$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
 	}
 
 	public resetModel$(lightStates: Array<number[]> | null, sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): Observable<string> {
@@ -329,7 +341,7 @@ export class ViewerComponent implements OnInit {
 			sketchfabService.setLights(lightStates);
 		}
 		this.annotationDescription$.next(sketchfabService.annotations[0][selectedLanguage].description);
-		this.annotationTitle$.next(sketchfabService.annotations[0][selectedLanguage].heading);
+		this.annotationHeading$.next(sketchfabService.annotations[0][selectedLanguage].heading);
 
 		return sketchfabService.setInitCameraPos(0, sketchfabService.annotations[0].cameraPosition, sketchfabService.annotations[0].cameraTarget, sketchfabService.api, sketchfabService.resetModelTime).pipe(
 			delay(sketchfabService.resetModelTime * 1000),
@@ -341,17 +353,9 @@ export class ViewerComponent implements OnInit {
 		);
 	}
 
-	public toggleLanguage(annotation: InfoBoxContent, selectedLanguage: 'swedish' | 'english') {
-		this.annotationDescription$.next(annotation.description);
-		this.annotationTitle$.next(annotation.heading);
-
-		this.selectedLanguage$.next(selectedLanguage);
-	}
-
 	public stopSpinning(spinningElement: any, sketchfabService: SketchfabService) {
 		sketchfabService.spinning = false;
 		this.showClickableLayer$.next(false);
 		sketchfabService.cameraIsMoving = false;
-		console.log('spinningElement: ', spinningElement);
 	}
 }
