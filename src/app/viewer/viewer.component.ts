@@ -3,7 +3,7 @@ import { WordpressService } from '../services/wordpress.service';
 import { SketchfabService } from '../services/sketchfab.service';
 import { BehaviorSubject, combineLatest, delay, filter, finalize, interval, map, Observable, of, ReplaySubject, Subject, switchMap, take, takeUntil, tap } from 'rxjs';
 import { WpPostModel } from '../models/wp-post.model';
-import { InfoBox } from '../models/info-box-content.model';
+import { InfoBox, InfoBoxContent } from '../models/info-box-content.model';
 import { Annotation } from '../models/annotation.model';
 import { SketchFabModelData } from '../models/sketchfab-model-data';
 
@@ -105,7 +105,7 @@ export class ViewerComponent implements OnInit {
 				viewers[0].api.start();
 
 				// TODO Not working texture will still be LD, must update the frame in some way
-				 return viewers[0].setHDtexture().pipe(
+				 return viewers[0].setHDtexture(viewers[0].api).pipe(
 					filter(texture => texture),
 					switchMap(() => {
 						this.selectedSketchfabService$.next(viewers[0]);
@@ -242,7 +242,7 @@ export class ViewerComponent implements OnInit {
 			this.viewerRef.get(sketchfabServiceNext.modelIndex)?.nativeElement.scrollIntoView();
 		}
 
-		return sketchfabServicePrev.setLDtexture().pipe(
+		return sketchfabServicePrev.setLDtexture(sketchfabServicePrev.api).pipe(
 			filter(texture => texture),
 			switchMap(() => {
 				return sketchfabServicePrev.setInitCameraPos(0, sketchfabServicePrev.annotations[0].cameraPosition, sketchfabServicePrev.annotations[0].cameraTarget, sketchfabServicePrev.api, 0.01).pipe(
@@ -252,7 +252,7 @@ export class ViewerComponent implements OnInit {
 						this.startSpinningInterval$.next(true);
 						this.selectedSketchfabService$.next(sketchfabServiceNext);
 
-						return sketchfabServiceNext.setHDtexture().pipe(
+						return sketchfabServiceNext.setHDtexture(sketchfabServiceNext.api).pipe(
 							filter(texture => texture),
 							tap(() => {
 								console.log('Texture loaded hd');
@@ -341,9 +341,9 @@ export class ViewerComponent implements OnInit {
 		);
 	}
 
-	public toggleLanguage(annotations: any, selectedLanguage: 'swedish' | 'english', selectedAnnotation: number) {
-		this.annotationDescription$.next(annotations.descriptions[selectedAnnotation]);
-		this.annotationTitle$.next(annotations.titles[selectedAnnotation]);
+	public toggleLanguage(annotation: InfoBoxContent, selectedLanguage: 'swedish' | 'english') {
+		this.annotationDescription$.next(annotation.description);
+		this.annotationTitle$.next(annotation.heading);
 
 		this.selectedLanguage$.next(selectedLanguage);
 	}

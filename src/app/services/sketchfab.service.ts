@@ -83,6 +83,7 @@ export class SketchfabService {
 
 	public slug: string;
 
+	//TODO try to remove 'this' variables
 	constructor(
 	) {
 		this.apiready$.next(false);
@@ -367,12 +368,11 @@ export class SketchfabService {
 			}),
 		);
 
-		return of('message3');
 	}
 
-	public setHDtexture(): Observable<boolean> {
+	public setHDtexture(api: any): Observable<boolean> {
 		return new Observable<boolean>((observer) =>
-			this.api.setTextureQuality('hd', (readyTexture: any) => {
+			api.setTextureQuality('hd', (readyTexture: any) => {
 				console.log('Texture quality set to high definition');
 				this.textureQuality$.next('HD');
 				observer.next(true);
@@ -381,10 +381,10 @@ export class SketchfabService {
 		);
 	}
 
-	public setLDtexture(): Observable<boolean> {
+	public setLDtexture(api: any): Observable<boolean> {
 
 		return new Observable<boolean>((observer) =>
-			this.api.setTextureQuality('ld', (readyTexture: any) => {
+			api.setTextureQuality('ld', (readyTexture: any) => {
 				console.log('Texture quality set to low definition');
 				this.textureQuality$.next('LD');
 				observer.next(true);

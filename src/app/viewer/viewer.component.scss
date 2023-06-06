@@ -1,6 +1,10 @@
 $menu-scale: 1;
 
-.loading-models{
+h2 {
+	margin-top: 0px;
+}
+
+.loading-models {
 	width: 100%;
     height: 100vh;
     z-index: 2;
@@ -13,38 +17,41 @@ $menu-scale: 1;
 }
 
 .menu-nav {
-	width: 100px;
 	z-index: 1;
     position: fixed;
     top: 50%;
     left: 0;
     transform: translateY(-50%);
     background: #fff;
-	padding: 10px;
     margin: 0;
 
 	li {
 		list-style: none;
 
+		button{
+			padding: 0;
+			border: 0;
+    		background: none;
+		}
 		img {
 			width: 100px;
+			padding: 10px;
 		}
 	}
-
 
 	&__infoButton{
 		color: black;
 		height: calc(90px * $menu-scale);
 		padding: 0px;
+		height: 120px;
+
+		&--clicked{
+			background-color: #000;
+			color: white;
+		}
 	}
 
-	&__infoButton:active{
-		height: calc(90px * $menu-scale);
-		background-color: #000;
-		color: white;
-	}
-
-	&__infoButton:focus{
+	&__infoButton--clicked{
 		background-color: #000;
 		color: white;
 	}
@@ -112,10 +119,30 @@ $menu-scale: 1;
 .info-block {
 	width: 700px;
     color: #fff;
-    height: 300px;
+	padding: 15px;
     background-color: rgba(0, 0, 0, 0.562);
     z-index: 1000;
     position: fixed;
     top: 835px;
     left: 650px;
+
+	&__language {
+		margin: 45px 0 15px 0;
+		&__selected {
+			text-decoration: underline;
+		}
+	}
+
+	&__panel {
+		display: flex;
+		justify-content: space-between;
+
+		&__cross {
+			max-width: 100px;
+		}
+
+		&__annotation-arrow {
+			max-width: 100px;
+		}
+	}
 }

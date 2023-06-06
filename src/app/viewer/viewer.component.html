@@ -37,7 +37,7 @@
 	<!-- TODO buld image url in ts file -->
 	<ul class="menu-nav" *ngIf="source.selectedSketchfabService && source.selectedLanguage">
 		<li *ngFor="let sketchfabServiceNext of source.sketchfabServices; let i = index"  >
-			Texture quality: {{sketchfabServiceNext.textureQuality$ | async}}
+			<!-- Texture quality: {{sketchfabServiceNext.textureQuality$ | async}} -->
 			<img *ngIf="sketchfabServiceNext && source.selectedSketchfabService"
 			[asyncClick]="selectModel$.bind(this, source.selectedSketchfabService, sketchfabServiceNext, source.selectedLanguage)"
 			src="{{sketchfabServiceNext.imageUrl}}"
@@ -45,13 +45,15 @@
 			alt="{{baseUrl}}/wp-content/uploads/{{sketchfabServiceNext.slug}}.png">
 		</li>
 		<li>
-			<button [asyncClick]="resetModel$.bind(this, source.selectedSketchfabService.lightStates , source.selectedSketchfabService, source.selectedLanguage)">Reset</button>
-			<img src="/assets/reset.png" alt="">
+			<button [asyncClick]="resetModel$.bind(this, source.selectedSketchfabService.lightStates , source.selectedSketchfabService, source.selectedLanguage)">
+				<img src="/assets/reset.png" alt="">
+			</button>
+			<!-- <img src="/assets/reset.png" alt=""> -->
 		</li>
-		<li class="menu-nav__infoButton">
+		<li class="menu-nav__infoButton" [ngClass]="{'menu-nav__infoButton--clicked' : annotationBlockIsVisible}">
 			<div class="menu-nav__label" (click)="showAnnotationBlock(annotationBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">i</div>
 		</li>
-		<li class="menu-nav__infoButton">
+		<li class="menu-nav__infoButton" [ngClass]="{'menu-nav__infoButton--clicked' : infoBlockIsVisible}">
 			<div class="menu-nav__label" (click)="showInfoBlock(infoBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">?</div>
 		</li>
 	</ul>
@@ -61,25 +63,30 @@
 		<p>
 			{{source.annotationDescription}}
 		</p>
-		<span (click)="previousAnnotation(
-			source.selectedSketchfabService,
-			source.selectedLanguage)">
-			prev
-		</span>
 
-		<span (click)="showAnnotationBlock(annotationBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">
-			x
-		</span>
+		<div class="info-block__language">
+			<span (click)="toggleLanguage(source.selectedSketchfabService.annotations[selectedAnnotation].swedish, 'swedish')"
+				[ngClass]="{'info-block__language__selected': source.selectedLanguage === 'swedish'}">Svenska</span>/
+			<span (click)="toggleLanguage(source.selectedSketchfabService.annotations[selectedAnnotation].english, 'english')"
+				[ngClass]="{'info-block__language__selected': source.selectedLanguage === 'english'}">Engelska</span>
+		</div>
 
-		<span (click)="nextAnnotation(
-			source.selectedSketchfabService,
-			source.selectedLanguage)">
-			next
-		</span>
+		<div class="info-block__panel">
+			<img (click)="previousAnnotation(
+				source.selectedSketchfabService,
+				source.selectedLanguage)"
+				src="assets/arrow_left.png"
+				class="info-block__panel__annotation-arrow">
 
-		<div>
-			<span (click)="toggleLanguage(source.selectedSketchfabService.annotations[selectedAnnotation].swedish, 'swedish', selectedAnnotation)">Svenska/</span>
-			<span (click)="toggleLanguage(source.selectedSketchfabService.annotations[selectedAnnotation].english, 'english', selectedAnnotation)">Engelska</span>
+			<img (click)="showAnnotationBlock(annotationBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)"
+				src="assets/cross_middle.png"
+				class="info-block__panel__cross">
+
+			<img (click)="nextAnnotation(
+				source.selectedSketchfabService,
+				source.selectedLanguage)"
+				src="assets/arrow_right.png"
+				class="info-block__panel__annotation-arrow">
 		</div>
 	</div>
 
