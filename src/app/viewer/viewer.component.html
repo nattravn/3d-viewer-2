@@ -24,7 +24,7 @@
 	<div class="viewer">
 		<ul>
 			<li *ngFor="let post of source.posts; let i = index" class="wp-post" >
-				<div *ngIf="source.selectedSketchfabService && source.showClickableLayer" #spinningLayer class="clickable-layer" (click)="stopSpinning(spinningLayer, source.selectedSketchfabService)"></div>
+				<div *ngIf="source.selectedSketchfabService && source.showClickableLayer" #spinningLayer class="clickable-layer" (click)="stopSpinning(source.selectedSketchfabService)"></div>
 
 				<div *ngIf="source.allLoaded && (source.selectedSketchfabService?.textureQuality$ | async) == 'LD' && source.selectedSketchfabService!.modelIndex === i" class="load-texture-layer"></div>
 
@@ -46,7 +46,7 @@
 			alt="{{baseUrl}}/wp-content/uploads/{{sketchfabServiceNext.slug}}.png">
 		</li>
 		<li>
-			<button [asyncClick]="resetModel$.bind(this, source.selectedSketchfabService.lightStates , source.selectedSketchfabService, source.selectedLanguage)">
+			<button [asyncClick]="resetModel$.bind(this, source.selectedSketchfabService.api, source.selectedSketchfabService.lightStates , source.selectedSketchfabService, source.selectedLanguage)">
 				<img src="/assets/reset.png" alt="">
 			</button>
 			<!-- <img src="/assets/reset.png" alt=""> -->
@@ -60,6 +60,7 @@
 	</ul>
 
 	<!-- Annotation box -->
+	<!-- TODO move this to separate component, crate viewer service -->
 	<div *ngIf="annotationBlockIsVisible && source.selectedSketchfabService && source.selectedLanguage" class="info-block">
 		<h2>{{source.annotationHeading}}</h2>
 		<p>
@@ -74,7 +75,7 @@
 		</div>
 
 		<div class="info-block__panel">
-			<img (click)="previousAnnotation(
+			<img [asyncClick]="previousAnnotation$.bind(this,
 				source.selectedSketchfabService,
 				source.selectedLanguage)"
 				src="assets/arrow_left.png"
@@ -84,7 +85,7 @@
 				src="assets/cross_middle.png"
 				class="info-block__panel__cross">
 
-			<img (click)="nextAnnotation(
+			<img [asyncClick]="nextAnnotation$.bind(this,
 				source.selectedSketchfabService,
 				source.selectedLanguage)"
 				src="assets/arrow_right.png"

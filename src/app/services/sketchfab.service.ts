@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 //import Sketchfab2 from 'src/sketchfab-viewer-1.12.1';
 
 import Sketchfab from '@sketchfab/viewer-api';
-import { BehaviorSubject, filter, Observable, of, ReplaySubject, takeWhile, tap } from 'rxjs';
+import { BehaviorSubject, delay, filter, map, Observable, of, ReplaySubject, Subject, takeWhile, tap } from 'rxjs';
 import { Camera } from '../models/camera.model';
 import { InfoBox, InfoBoxContent } from '../models/info-box-content.model';
 import { Annotation } from '../models/annotation.model';
@@ -36,8 +36,18 @@ export class SketchfabService {
 
 	public helpInfo = new InfoBox('', '', '', '');
 
+	public spinning = false;
+
+	public frames = 0;
+
+	public imageUrl = '';
+
+	public slug: string;
+
+	public changingAnnotation$ = new Subject<boolean>();
+
 	//// Private fields
-	private animationTime = 0;
+	public animationTime = 0;
 
 	public resetModelTime = 0;
 
@@ -52,8 +62,6 @@ export class SketchfabService {
 	private logCamera = true;
 
 	private rotAxis = { x:0, y:0, z:0 };
-
-	public spinning = false;
 
 	private time = 0;
 
@@ -76,12 +84,6 @@ export class SketchfabService {
 	private speedRotate = Math.PI / 50.0;
 
 	private speed = 0.05;
-
-	public frames = 0;
-
-	public imageUrl = '';
-
-	public slug: string;
 
 	//TODO try to remove 'this' variables
 	constructor(sketchFabModelData: SketchFabModelData) {
@@ -167,7 +169,7 @@ export class SketchfabService {
 			});
 
 
-			this._onTick(this.annotations[0].cameraPosition, this.annotations[0].cameraTarget);
+			this._onTick(api, this.annotations[0].cameraPosition, this.annotations[0].cameraTarget);
 
 
 
@@ -250,33 +252,30 @@ export class SketchfabService {
 		console.log('Viewer error', e);
 	}
 
-	public prevAnnotation(position: number[], target: number[], api: any) {
-
-		api.setCameraLookAt(position, target, this.animationTime, () => {
-			console.log('prev annotation');
-		});
-	}
-
-	public nextAnnotation(position: number[], target: number[], api: any) {
-
-		api.setCameraLookAt(position, target, this.animationTime, () => {
-			console.log('next annotation');
-		});
+	public changeAnnotation(position: number[], target: number[], animationTime: number, api: any): Observable<boolean> {
+		this.changingAnnotation$.next(true);
+		return new Observable<boolean>((observer) => {
+			api.setCameraLookAt(position, target, animationTime, () => {
+				this.cameraIsMoving = true;
+			});
+			observer.next(true);
+		}).pipe(
+			delay(animationTime * 1000),
+		);
 	}
 
 	/**
-	 * Probably delete this
 	 * Runs un every frame update. The render loop
 	 * The model will start to spin after some seconds of idle
 	 */
-	private _onTick(positionInit: any, targetInit: any) {
+	private _onTick(api: any, positionInit: any, targetInit: any) {
 		// we dont always log camera position because of memory leak
 		if (this.logCamera) {
 			//this._updateCamera();
 		}
 
-		this._rotateCamera(positionInit, targetInit);
-		requestAnimationFrame(() => this._onTick(positionInit, targetInit));
+		this._rotateCamera(api, positionInit, targetInit);
+		requestAnimationFrame(() => this._onTick(api, positionInit, targetInit));
 	}
 
 	//when the user click in the 3d space, hide both annotations, descriptions and dropdownmenu
@@ -306,7 +305,7 @@ export class SketchfabService {
 	}
 
 	// Probably delete this
-	_rotateCamera(positionInit: any, targetInit: any) {
+	_rotateCamera(api: any, positionInit: any, targetInit: any) {
 		this.time = (this.frames) * (Math.PI / 180); //xy plane;
 
 		this.time = this.time * this.spinVelocity;
@@ -323,7 +322,7 @@ export class SketchfabService {
 		// make the model spinn
 		if (this.spinning) {
 			this.cameraIsMoving = true;
-			this.api.lookat([this.x, this.y, positionInit[2]], targetInit, 0.00);
+			api.lookat([this.x, this.y, positionInit[2]], targetInit, 0.00);
 		}
 	}
 
@@ -346,16 +345,17 @@ export class SketchfabService {
 		});
 	}
 
-	public setLights(states: any[]) {
+	public setLights(api: any, states: any[]) {
 		for (let i = 0; i < 3; i++) {
-			this.api.setLight(i, { matrix: states[i].matrix });
+			api.setLight(i, { matrix: states[i].matrix });
 		}
-		this.api.setEnvironment({ rotation: states[3].rotation });
+		api.setEnvironment({ rotation: states[3].rotation });
 	}
 
 	public setInitCameraPos(currentIframe: number, cameraPositionInit: number[], cameraTargetInit: number[], api: any, resetModelTime: number): Observable<string> {
 		//this.frames = 0.0;
 		this.cameraIsMoving = false;
+		this.changingAnnotation$.next(true);
 		return new Observable<string>((observer) =>
 			api.setCameraLookAt(cameraPositionInit, cameraTargetInit, resetModelTime, (err: any) => {
 				if (!err) {
@@ -382,7 +382,6 @@ export class SketchfabService {
 	}
 
 	public setLDtexture(api: any): Observable<boolean> {
-
 		return new Observable<boolean>((observer) =>
 			api.setTextureQuality('ld', (readyTexture: any) => {
 				console.log('Texture quality set to low definition');

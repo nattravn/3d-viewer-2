@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy,  Component, ElementRef, OnInit, QueryList, Renderer2, ViewChildren } from '@angular/core';
 import { WordpressService } from '../services/wordpress.service';
 import { SketchfabService } from '../services/sketchfab.service';
-import { BehaviorSubject, combineLatest, delay, filter, finalize, interval, map, Observable, of, ReplaySubject, Subject, switchMap, take, takeUntil, tap } from 'rxjs';
+import { BehaviorSubject, combineLatest, delay, filter, finalize, interval, map, Observable, of, ReplaySubject, Subject, switchMap, take, takeUntil, takeWhile, tap } from 'rxjs';
 import { WpPostModel } from '../models/wp-post.model';
 import { InfoBox, InfoBoxContent } from '../models/info-box-content.model';
 import { Annotation } from '../models/annotation.model';
@@ -97,7 +97,6 @@ export class ViewerComponent implements OnInit {
 				);
 			}),
 			takeUntil(this.allLoaded$),
-
 			switchMap((viewers: SketchfabService[]) => {
 				// start next viewer after the previous ar done (serially)
 				this.viewersReady$.next(`Models loading: 0/${viewers.length} loaded`);
@@ -143,9 +142,11 @@ export class ViewerComponent implements OnInit {
 				//console.log("selectedSketchfabService.spinning: ", selectedSketchfabService.spinning)
 				if (!selectedSketchfabService.cameraIsMoving && selectedSketchfabService.timer % 10 == 0 && selectedSketchfabService.timer > 10) {
 					// FIXME selectedSketchfabService.lightStates is only loaded after some seconds
-					selectedSketchfabService.setLights(selectedSketchfabService.lightStates);
+					selectedSketchfabService.setLights(selectedSketchfabService.api, selectedSketchfabService.lightStates);
 					this.startSpinningInterval$.next(false);
-
+					this.infoBlockIsVisible = false;
+					this.annotationBlockIsVisible = false;
+					this.selectedAnnotation = 0;
 
 					return selectedSketchfabService.setInitCameraPos(0, selectedSketchfabService.annotations[0].cameraPosition, selectedSketchfabService.annotations[0].cameraTarget, selectedSketchfabService.api, selectedSketchfabService.resetModelTime).pipe(
 						delay(selectedSketchfabService.resetModelTime * 1000 + 1000),
@@ -198,15 +199,12 @@ export class ViewerComponent implements OnInit {
 			});
 		});
 
-		console.log("post.post_meta_fields.eng_help_text: ", post.post_meta_fields.eng_help_text);
-
 		const helpInfo = new InfoBox(
 			post.post_meta_fields.eng_help_text,
 			post.post_meta_fields.eng_help_heading,
 			post.post_meta_fields.swe_help_text,
 			post.post_meta_fields.swe_help_heading,
 		);
-
 
 		const sketchFabModelData: SketchFabModelData = {
 			animationTime: post.post_meta_fields.animation_time,
@@ -272,6 +270,7 @@ export class ViewerComponent implements OnInit {
 	}
 
 	public showAnnotationBlock(annotationBlockIsVisible: boolean, selectedSketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): void {
+		this.stopSpinning(selectedSketchfabService);
 		this.annotationDescription$.next(selectedSketchfabService.annotations[this.selectedAnnotation][selectedLanguage].description);
 		this.annotationHeading$.next(selectedSketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
 		this.annotationBlockIsVisible = annotationBlockIsVisible ? false : true;
@@ -295,41 +294,56 @@ export class ViewerComponent implements OnInit {
 		this.selectedLanguage$.next(selectedLanguage);
 	}
 
-	public previousAnnotation(sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): void {
+	public previousAnnotation$(sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): Observable<boolean> {
 		if (this.selectedAnnotation > 0) {
 			this.selectedAnnotation--;
+		} else {
+			this.selectedAnnotation = sketchfabService.annotations.length - 1;
 		}
-
-		sketchfabService.nextAnnotation(
-			sketchfabService.annotations[this.selectedAnnotation].cameraPosition,
-			sketchfabService.annotations[this.selectedAnnotation].cameraTarget,
-			sketchfabService.api,
-		);
 
 		this.annotationDescription$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].description);
 		this.annotationHeading$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
+
+		return sketchfabService.changeAnnotation(
+			sketchfabService.annotations[this.selectedAnnotation].cameraPosition,
+			sketchfabService.annotations[this.selectedAnnotation].cameraTarget,
+			sketchfabService.animationTime,
+			sketchfabService.api,
+		).pipe(
+			takeUntil(sketchfabService.changingAnnotation$),
+			tap(() => {
+				console.log('sketchfabService.cameraIsMoving: ', sketchfabService.cameraIsMoving);
+				sketchfabService.cameraIsMoving = false;
+			}),
+		);
 	}
 
-	public nextAnnotation(sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): void {
-		if (!sketchfabService) {
-			return;
-		}
+	public nextAnnotation$(sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): Observable<boolean> {
 
-		if (this.selectedAnnotation < sketchfabService.annotations.length) {
+		if (this.selectedAnnotation < sketchfabService.annotations.length - 1) {
 			this.selectedAnnotation++;
+		} else {
+			this.selectedAnnotation = 0;
 		}
-
-		sketchfabService.nextAnnotation(
-			sketchfabService.annotations[this.selectedAnnotation].cameraPosition,
-			sketchfabService.annotations[this.selectedAnnotation].cameraTarget,
-			sketchfabService.api,
-		);
 
 		this.annotationDescription$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].description);
 		this.annotationHeading$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
+
+		return sketchfabService.changeAnnotation(
+			sketchfabService.annotations[this.selectedAnnotation].cameraPosition,
+			sketchfabService.annotations[this.selectedAnnotation].cameraTarget,
+			sketchfabService.animationTime,
+			sketchfabService.api,
+		).pipe(
+			takeUntil(sketchfabService.changingAnnotation$),
+			tap(() => {
+				console.log('sketchfabService.cameraIsMoving: ', sketchfabService.cameraIsMoving);
+				sketchfabService.cameraIsMoving = false;
+			}),
+		);
 	}
 
-	public resetModel$(lightStates: Array<number[]> | null, sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): Observable<string> {
+	public resetModel$(api: any, lightStates: Array<number[]> | null, sketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): Observable<string> {
 		sketchfabService.spinning = false;
 		if (!lightStates) {
 			return of('debug');
@@ -338,7 +352,7 @@ export class ViewerComponent implements OnInit {
 
 		// reset light positions
 		if (lightStates.length) {
-			sketchfabService.setLights(lightStates);
+			sketchfabService.setLights(api, lightStates);
 		}
 		this.annotationDescription$.next(sketchfabService.annotations[0][selectedLanguage].description);
 		this.annotationHeading$.next(sketchfabService.annotations[0][selectedLanguage].heading);
@@ -353,7 +367,7 @@ export class ViewerComponent implements OnInit {
 		);
 	}
 
-	public stopSpinning(spinningElement: any, sketchfabService: SketchfabService) {
+	public stopSpinning(sketchfabService: SketchfabService) {
 		sketchfabService.spinning = false;
 		this.showClickableLayer$.next(false);
 		sketchfabService.cameraIsMoving = false;
