@@ -115,6 +115,9 @@ export class SketchfabService {
 		// TODO this is async data, dont set it to this
 
 
+		this.camera.positionInit = this.annotations[0].cameraPosition;
+		this.camera.targetInit = this.annotations[0].cameraTarget;
+
 		// By default, the latest version of the viewer API will be used.
 		const client = new Sketchfab(iframe);
 
@@ -165,16 +168,7 @@ export class SketchfabService {
 				console.log('Texture quality set to low definition');
 			});
 
-
-			this.api.getCameraLookAt(async (err: any, camera: Camera) => {
-				this.camera.positionInit = await camera.position;
-				this.camera.targetInit = camera.target;
-			});
-
-
 			this._onTick(api, this.annotations[0].cameraPosition, this.annotations[0].cameraTarget, this.rotAxis);
-
-
 
 			const lightStates: Array<number[]> = [];
 
@@ -204,13 +198,13 @@ export class SketchfabService {
 			api.addEventListener('camerastart', () => {
 				this.doneRotate = true;
 				//this.cameraIsMoving$.next(true);
-				//this.cameraIsMoving = true;
+				this.cameraIsMoving = true;
 				//console.log('camerastart')
 			});
 
 			api.addEventListener('camerastop', () =>{
 				this.doneRotate = false;
-				//this.cameraIsMoving = false;
+				this.cameraIsMoving = false;
 				//console.log('camerastop')
 				//this.cameraIsMoving$.next(false);
 				this.timer = 0;
@@ -262,8 +256,10 @@ export class SketchfabService {
 				this.cameraIsMoving = true;
 			});
 			observer.next(true);
+			observer.complete();
 		}).pipe(
-			delay(animationTime * 1000),
+			// Only to disable the button 1 second
+			delay(1000),
 		);
 	}
 
@@ -338,7 +334,6 @@ export class SketchfabService {
 			this.y = this.radius * Math.sin(this.initAngle + this.time) + targetInit[1]; // moves camera forward and backwards on the z-axis
 			this.z = positionInit[2];
 		}
-
 
 		this.frames++;
 

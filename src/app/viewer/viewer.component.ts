@@ -50,7 +50,7 @@ export class ViewerComponent implements OnInit {
 
 	public sketchfabServices$: Observable<SketchfabService[]>;
 
-	private readonly intervalStep = 10;
+	private readonly intervalStep = 5;
 
 	/**
 	 * Subject to to complete subscriptions on destroy.
@@ -135,11 +135,10 @@ export class ViewerComponent implements OnInit {
 		interval(1000).pipe(
 			takeUntil(this.untilDestroyed$),
 			switchMap(() => this.startSpinningInterval$),
-			filter(destroy => destroy),
+			filter(startSpinningInterval => startSpinningInterval),
 			switchMap(() => this.selectedSketchfabService$),
 			switchMap(selectedSketchfabService => {
-				//console.log("cameraIsMoving: ", selectedSketchfabService.cameraIsMoving)
-				//console.log("selectedSketchfabService.spinning: ", selectedSketchfabService.spinning)
+				console.log('selectedSketchfabService.cameraIsMoving: ', selectedSketchfabService.cameraIsMoving);
 				if (!selectedSketchfabService.cameraIsMoving && selectedSketchfabService.timer % this.intervalStep == 0 && selectedSketchfabService.timer > this.intervalStep) {
 					// FIXME selectedSketchfabService.lightStates is only loaded after some seconds
 					selectedSketchfabService.setLights(selectedSketchfabService.api, selectedSketchfabService.lightStates);
@@ -148,14 +147,22 @@ export class ViewerComponent implements OnInit {
 					this.annotationBlockIsVisible = false;
 					this.selectedAnnotation = 0;
 
-					return selectedSketchfabService.setInitCameraPos(0, selectedSketchfabService.annotations[0].cameraPosition, selectedSketchfabService.annotations[0].cameraTarget, selectedSketchfabService.api, selectedSketchfabService.resetModelTime).pipe(
+					return selectedSketchfabService.setInitCameraPos(
+						0,
+						selectedSketchfabService.annotations[0].cameraPosition,
+						selectedSketchfabService.annotations[0].cameraTarget,
+						selectedSketchfabService.api,
+						selectedSketchfabService.resetModelTime,
+					).pipe(
 						delay(selectedSketchfabService.resetModelTime * 1000 + 1000),
 						map(() => {
-							// Most reset frame after init position otherwise the first spinning frame will show an already rotated model
-							selectedSketchfabService.frames = 0.0;
-							selectedSketchfabService.spinning = true;
-							this.showClickableLayer$.next(true);
-
+							//Camera can be in moving mode here if user have clicked on next annotation. The spinning should be ignored then
+							if (!selectedSketchfabService.cameraIsMoving) {
+								// Most reset frame after init position otherwise the first spinning frame will show an already rotated model
+								selectedSketchfabService.frames = 0.0;
+								selectedSketchfabService.spinning = true;
+								this.showClickableLayer$.next(true);
+							}
 							this.startSpinningInterval$.next(true);
 							return selectedSketchfabService;
 						}),
@@ -223,6 +230,7 @@ export class ViewerComponent implements OnInit {
 
 		const iframe = this.viewerRef.get(index)?.nativeElement;
 
+		console.log('sketchFabModelData: ', sketchFabModelData)
 		const sketchfabServices = new SketchfabService(sketchFabModelData);
 
 		if (iframe) {
@@ -270,7 +278,7 @@ export class ViewerComponent implements OnInit {
 	}
 
 	public showAnnotationBlock(annotationBlockIsVisible: boolean, selectedSketchfabService: SketchfabService, selectedLanguage: 'swedish' | 'english'): void {
-		this.stopSpinning(selectedSketchfabService);
+		//this.stopSpinning(selectedSketchfabService);
 		this.annotationDescription$.next(selectedSketchfabService.annotations[this.selectedAnnotation][selectedLanguage].description);
 		this.annotationHeading$.next(selectedSketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
 		this.annotationBlockIsVisible = annotationBlockIsVisible ? false : true;
@@ -301,6 +309,10 @@ export class ViewerComponent implements OnInit {
 			this.selectedAnnotation = sketchfabService.annotations.length - 1;
 		}
 
+		//If the model is in spinning mode when user opens the annotation box
+		sketchfabService.spinning = false;
+		this.showClickableLayer$.next(false);
+
 		this.annotationDescription$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].description);
 		this.annotationHeading$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
 
@@ -313,8 +325,7 @@ export class ViewerComponent implements OnInit {
 			takeUntil(this.untilDestroyed$),
 			takeUntil(sketchfabService.changingAnnotation$),
 			tap(() => {
-				console.log('sketchfabService.cameraIsMoving: ', sketchfabService.cameraIsMoving);
-				sketchfabService.cameraIsMoving = false;
+				//sketchfabService.cameraIsMoving = false;
 			}),
 		);
 	}
@@ -327,6 +338,10 @@ export class ViewerComponent implements OnInit {
 			this.selectedAnnotation = 0;
 		}
 
+		//If the model is in spinning mode when user opens the annotation box
+		sketchfabService.spinning = false;
+		this.showClickableLayer$.next(false);
+
 		this.annotationDescription$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].description);
 		this.annotationHeading$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
 
@@ -339,8 +354,7 @@ export class ViewerComponent implements OnInit {
 			takeUntil(this.untilDestroyed$),
 			takeUntil(sketchfabService.changingAnnotation$),
 			tap(() => {
-				console.log('sketchfabService.cameraIsMoving: ', sketchfabService.cameraIsMoving);
-				sketchfabService.cameraIsMoving = false;
+				//sketchfabService.cameraIsMoving = false;
 			}),
 		);
 	}
@@ -373,6 +387,5 @@ export class ViewerComponent implements OnInit {
 	public stopSpinning(sketchfabService: SketchfabService) {
 		sketchfabService.spinning = false;
 		this.showClickableLayer$.next(false);
-		sketchfabService.cameraIsMoving = false;
 	}
 }

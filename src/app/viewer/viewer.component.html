@@ -75,21 +75,19 @@
 		</div>
 
 		<div class="info-block__panel">
-			<img [asyncClick]="previousAnnotation$.bind(this,
-				source.selectedSketchfabService,
-				source.selectedLanguage)"
-				src="assets/arrow_left.png"
-				class="info-block__panel__annotation-arrow">
+			<button [asyncClick]="previousAnnotation$.bind(this, source.selectedSketchfabService, source.selectedLanguage)">
+				<img src="assets/arrow_left.png" class="info-block__panel__annotation-arrow">
+			</button>
+
 
 			<img (click)="showAnnotationBlock(annotationBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)"
 				src="assets/cross_middle.png"
 				class="info-block__panel__cross">
 
-			<img [asyncClick]="nextAnnotation$.bind(this,
-				source.selectedSketchfabService,
-				source.selectedLanguage)"
-				src="assets/arrow_right.png"
-				class="info-block__panel__annotation-arrow">
+			<button [asyncClick]="nextAnnotation$.bind(this, source.selectedSketchfabService, source.selectedLanguage)">
+				<img src="assets/arrow_right.png" class="info-block__panel__annotation-arrow">
+			</button>
+
 		</div>
 	</div>
 
