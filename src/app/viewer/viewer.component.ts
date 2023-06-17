@@ -50,6 +50,8 @@ export class ViewerComponent implements OnInit {
 
 	public sketchfabServices$: Observable<SketchfabService[]>;
 
+	private readonly intervalStep = 10;
+
 	/**
 	 * Subject to to complete subscriptions on destroy.
 	 */
@@ -58,8 +60,6 @@ export class ViewerComponent implements OnInit {
 	constructor(
 		public wordpressService: WordpressService,
 		public sketchfabService: SketchfabService,
-		private renderer: Renderer2,
-		private el: ElementRef,
 	) {}
 
 	ngOnInit(): void {
@@ -140,7 +140,7 @@ export class ViewerComponent implements OnInit {
 			switchMap(selectedSketchfabService => {
 				//console.log("cameraIsMoving: ", selectedSketchfabService.cameraIsMoving)
 				//console.log("selectedSketchfabService.spinning: ", selectedSketchfabService.spinning)
-				if (!selectedSketchfabService.cameraIsMoving && selectedSketchfabService.timer % 10 == 0 && selectedSketchfabService.timer > 10) {
+				if (!selectedSketchfabService.cameraIsMoving && selectedSketchfabService.timer % this.intervalStep == 0 && selectedSketchfabService.timer > this.intervalStep) {
 					// FIXME selectedSketchfabService.lightStates is only loaded after some seconds
 					selectedSketchfabService.setLights(selectedSketchfabService.api, selectedSketchfabService.lightStates);
 					this.startSpinningInterval$.next(false);
@@ -158,7 +158,6 @@ export class ViewerComponent implements OnInit {
 
 							this.startSpinningInterval$.next(true);
 							return selectedSketchfabService;
-
 						}),
 					);
 				} else {
@@ -243,6 +242,7 @@ export class ViewerComponent implements OnInit {
 		}
 
 		return sketchfabServicePrev.setLDtexture(sketchfabServicePrev.api).pipe(
+			takeUntil(this.untilDestroyed$),
 			filter(texture => texture),
 			switchMap(() => {
 				return sketchfabServicePrev.setInitCameraPos(0, sketchfabServicePrev.annotations[0].cameraPosition, sketchfabServicePrev.annotations[0].cameraTarget, sketchfabServicePrev.api, 0.01).pipe(
@@ -310,6 +310,7 @@ export class ViewerComponent implements OnInit {
 			sketchfabService.animationTime,
 			sketchfabService.api,
 		).pipe(
+			takeUntil(this.untilDestroyed$),
 			takeUntil(sketchfabService.changingAnnotation$),
 			tap(() => {
 				console.log('sketchfabService.cameraIsMoving: ', sketchfabService.cameraIsMoving);
@@ -335,6 +336,7 @@ export class ViewerComponent implements OnInit {
 			sketchfabService.animationTime,
 			sketchfabService.api,
 		).pipe(
+			takeUntil(this.untilDestroyed$),
 			takeUntil(sketchfabService.changingAnnotation$),
 			tap(() => {
 				console.log('sketchfabService.cameraIsMoving: ', sketchfabService.cameraIsMoving);
@@ -358,6 +360,7 @@ export class ViewerComponent implements OnInit {
 		this.annotationHeading$.next(sketchfabService.annotations[0][selectedLanguage].heading);
 
 		return sketchfabService.setInitCameraPos(0, sketchfabService.annotations[0].cameraPosition, sketchfabService.annotations[0].cameraTarget, sketchfabService.api, sketchfabService.resetModelTime).pipe(
+			takeUntil(this.untilDestroyed$),
 			delay(sketchfabService.resetModelTime * 1000),
 			map(() => {
 				sketchfabService.cameraIsMoving = false;

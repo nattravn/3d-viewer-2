@@ -1,5 +1,6 @@
 import { Annotation } from "./annotation.model";
 import { InfoBox } from "./info-box-content.model";
+import { Point } from "./point.model";
 
 export class SketchFabModelData {
 	public animationTime: number;
@@ -16,7 +17,7 @@ export class SketchFabModelData {
 
 	public logCamera: boolean;
 
-	public rotAxis: { x:number, y:number, z:number };
+	public rotAxis: Point;
 
 	public annotations: Array<Annotation>;
 

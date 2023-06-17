@@ -4,7 +4,7 @@ h2 {
 	margin-top: 0px;
 }
 
-.loading-models {
+.loading-screen {
 	width: 100%;
     height: 100vh;
     z-index: 2;
@@ -122,9 +122,12 @@ h2 {
 	padding: 15px;
     background-color: rgba(0, 0, 0, 0.562);
     z-index: 1000;
-    position: fixed;
-    top: 835px;
-    left: 650px;
+	position: fixed;
+	left: 0;
+	right: 0;
+	margin: auto;
+	top: 50%;
+    transform: translateY(-50%);
 
 	&__language {
 		margin: 45px 0 15px 0;
