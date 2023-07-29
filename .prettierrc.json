@@ -1,8 +1,8 @@
-// Not used
 {
 	"useTabs": true,
+	"endOfLine": "auto",
 	"tabWidth": 4,
-	"printWidth": 500,
+	"printWidth": 150,
 	"trailingComma": "es5",
 	"htmlWhitespaceSensitivity": "ignore",
 	"overrides": [

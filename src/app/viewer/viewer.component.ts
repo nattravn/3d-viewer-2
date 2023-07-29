@@ -6,6 +6,7 @@ import { WpPostModel } from '../models/wp-post.model';
 import { InfoBox, InfoBoxContent } from '../models/info-box-content.model';
 import { Annotation } from '../models/annotation.model';
 import { SketchFabModelData } from '../models/sketchfab-model-data';
+import { HttpClient } from '@angular/common/http';
 
 
 @Component({
@@ -60,10 +61,20 @@ export class ViewerComponent implements OnInit {
 	constructor(
 		public wordpressService: WordpressService,
 		public sketchfabService: SketchfabService,
+
+		private https: HttpClient,
 	) {}
 
 	ngOnInit(): void {
 		// https://stackblitz.com/edit/rxjs-5-progress-bar-wxdxwe?devtoolsheight=50&file=index.ts
+
+
+
+		const url = 'https://cdn.softube.com/api/v1/products?pageSize=1000';
+
+    	const data =  this.https.get<any>(url).subscribe();
+
+		console.log('data: ', data);
 
 		this.sketchfabServices$ = this.wordpressService.getPostsFromWp().pipe(
 			takeUntil(this.untilDestroyed$),
@@ -377,6 +388,7 @@ export class ViewerComponent implements OnInit {
 			takeUntil(this.untilDestroyed$),
 			delay(sketchfabService.resetModelTime * 1000),
 			map(() => {
+				// Delete this when it is updated in api.addEventListener('camerastop') ??
 				sketchfabService.cameraIsMoving = false;
 				this.startSpinningInterval$.next(true);
 				return 'debug';
