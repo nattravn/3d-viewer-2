@@ -6,10 +6,7 @@ import { Component, OnInit } from '@angular/core';
 	styleUrls: ['./annotation-nav.component.css'],
 })
 export class AnnotationNavComponent implements OnInit {
+	constructor() {}
 
-	constructor() { }
-
-	ngOnInit() {
-	}
-
+	ngOnInit() {}
 }

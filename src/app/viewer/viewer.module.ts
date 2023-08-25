@@ -1,22 +1,19 @@
-import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ViewerComponent } from './viewer.component';
-import { MenuComponent } from './menu/menu.component';
-import { AnnotationNavComponent } from './annotation-nav/annotation-nav.component';
+import { HttpClientModule } from '@angular/common/http';
+import { NgModule } from '@angular/core';
+
+import { AsyncClickDirective } from '../directives/async-click.directive';
+import { FallbackImgDirective } from '../directives/my-directive.directive';
+import { SketchFabModelData } from '../models/sketchfab-model-data';
+import { SafeHtmlPipe } from '../pipes/safe-html.pipe';
 import { SketchfabService } from '../services/sketchfab.service';
 import { WordpressService } from '../services/wordpress.service';
-import { HttpClientModule } from '@angular/common/http';
-import { SafeHtmlPipe } from '../pipes/safe-html.pipe';
-import { FallbackImgDirective } from '../directives/my-directive.directive';
-import { AsyncClickDirective } from '../directives/async-click.directive';
-import { SketchFabModelData } from '../models/sketchfab-model-data';
-
+import { AnnotationNavComponent } from './annotation-nav/annotation-nav.component';
+import { MenuComponent } from './menu/menu.component';
+import { ViewerComponent } from './viewer.component';
 
 @NgModule({
-	imports: [
-		CommonModule,
-		HttpClientModule,
-	],
+	imports: [CommonModule, HttpClientModule],
 	declarations: [
 		ViewerComponent,
 		MenuComponent,
@@ -25,10 +22,6 @@ import { SketchFabModelData } from '../models/sketchfab-model-data';
 		FallbackImgDirective,
 		AsyncClickDirective,
 	],
-	providers: [
-		SketchfabService,
-		WordpressService,
-		SketchFabModelData,
-	],
+	providers: [SketchfabService, WordpressService, SketchFabModelData],
 })
-export class ViewerModule { }
+export class ViewerModule {}

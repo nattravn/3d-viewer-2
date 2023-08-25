@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-//import Sketchfab2 from 'src/sketchfab-viewer-1.12.1';
+// import Sketchfab2 from 'src/sketchfab-viewer-1.12.1';
 
 import Sketchfab from '@sketchfab/viewer-api';
 import { BehaviorSubject, delay, filter, map, Observable, of, ReplaySubject, Subject, takeWhile, tap } from 'rxjs';
@@ -11,8 +11,7 @@ import { Point } from '../models/point.model';
 
 @Injectable()
 export class SketchfabService {
-
-	//Public fields
+	// Public fields
 	public api: any = null;
 
 	public client: any = null;
@@ -47,13 +46,13 @@ export class SketchfabService {
 
 	public changingAnnotation$ = new Subject<boolean>();
 
-	//// Private fields
 	public animationTime = 0;
 
 	public resetModelTime = 0;
 
-	private spinVelocity = 0;
+	public selectedSketchfabService$ = new ReplaySubject<SketchfabService>(1);
 
+	// Private fields
 	private orbitPanFactor = 0;
 
 	private orbitRotationFactor = 0;
@@ -62,7 +61,7 @@ export class SketchfabService {
 
 	private logCamera = true;
 
-	private rotAxis = { x:0, y:0, z:0 };
+	private rotAxis = { x: 0, y: 0, z: 0 };
 
 	private time = 0;
 
@@ -76,19 +75,21 @@ export class SketchfabService {
 
 	private z = 0;
 
-	private camera = new Camera;
+	private camera = new Camera();
 
 	private doneRotate = false;
 
+	private spinVelocity = 0;
+
 	// full circle
-	private pi2 = 2.0 * Math.PI;
+	private readonly PI_2 = 2.0 * Math.PI;
 
 	// that needs to be a faction of PI
-	private speedRotate = Math.PI / 50.0;
+	private readonly SPEED_ROTATE = Math.PI / 50.0;
 
-	private speed = 0.05;
+	private readonly SPEED = 0.05;
 
-	//TODO try to remove 'this' variables
+	// TODO try to remove 'this' variables
 	constructor(sketchFabModelData: SketchFabModelData) {
 		this.animationTime = sketchFabModelData.animationTime;
 		this.resetModelTime = sketchFabModelData.resetModelTime;
@@ -107,13 +108,8 @@ export class SketchfabService {
 		this.apiready$.next(false);
 	}
 
-	public init(
-		iframe: any,
-		uid: any,
-		currentIframe: any,
-	): any {
+	public init(iframe: any, uid: any, currentIframe: any): any {
 		// TODO this is async data, dont set it to this
-
 
 		this.camera.positionInit = this.annotations[0].cameraPosition;
 		this.camera.targetInit = this.annotations[0].cameraTarget;
@@ -124,7 +120,6 @@ export class SketchfabService {
 		// https://github.com/sketchfab/experiments/blob/master/configurator/index.html
 
 		// https://github.com/sketchfab/experiments/blob/master/compare-models/js/views/App.js
-
 
 		// Alternatively, you can request a specific version.
 		// var client = new Sketchfab( '1.12.1', iframe );
@@ -147,7 +142,7 @@ export class SketchfabService {
 			watermark: 0,
 			ui_watermark_link: 0,
 			orbit_pan_factor: this.orbitPanFactor,
-			orbit_rotation_factor:this.orbitRotationFactor,
+			orbit_rotation_factor: this.orbitRotationFactor,
 			orbit_zoom_factor: this.orbitZoomFactor,
 			camera: 0,
 			success: (api: any) => this.onSuccess(api, iframe),
@@ -197,25 +192,25 @@ export class SketchfabService {
 
 			api.addEventListener('camerastart', () => {
 				this.doneRotate = true;
-				//this.cameraIsMoving$.next(true);
+				// this.cameraIsMoving$.next(true);
 				this.cameraIsMoving = true;
-				//console.log('camerastart')
+				// console.log('camerastart')
 			});
 
-			api.addEventListener('camerastop', () =>{
+			api.addEventListener('camerastop', () => {
 				this.doneRotate = false;
 				this.cameraIsMoving = false;
-				//console.log('camerastop')
-				//this.cameraIsMoving$.next(false);
+				// console.log('camerastop')
+				// this.cameraIsMoving$.next(false);
 				this.timer = 0;
 			});
 
 			// Can be removed later
 			api.addEventListener('click', (info: any) => {
-				console.log("info: ", info.instanceID);
+				console.log('info: ', info.instanceID);
 
-				api.getNodeMap(function(err: any, nodes: any) {
-					console.log("nodes: ", nodes)
+				api.getNodeMap(function (err: any, nodes: any) {
+					console.log('nodes: ', nodes);
 				});
 			});
 
@@ -226,27 +221,27 @@ export class SketchfabService {
 	}
 
 	public updateRotation(addValue: any, instanceID: any, api: any) {
-
 		this.cameraIsMoving = true;
 		if (this.doneRotate) return;
-		//this.doneRotate = false;
+		// this.doneRotate = false;
 
 		// make sure values doesn't go beyond full circle
-		if (addValue >= this.pi2) {
-			addValue = addValue - this.pi2;
+		if (addValue >= this.PI_2) {
+			addValue = addValue - this.PI_2;
 		}
 
-		api.rotate(instanceID, [-addValue, this.rotAxis.x, this.rotAxis.y, this.rotAxis.z], {
-			duration: this.speed,
-			easing: 'linear',
-		}, () => {
-			//this.doneRotate = true;
-			this.updateRotation((addValue + this.speedRotate), instanceID, api);
-		});
-	}
-
-	private onError(e: any) {
-		console.log('Viewer error', e);
+		api.rotate(
+			instanceID,
+			[-addValue, this.rotAxis.x, this.rotAxis.y, this.rotAxis.z],
+			{
+				duration: this.SPEED,
+				easing: 'linear',
+			},
+			() => {
+				// this.doneRotate = true;
+				this.updateRotation(addValue + this.SPEED_ROTATE, instanceID, api);
+			},
+		);
 	}
 
 	public changeAnnotation(position: number[], target: number[], animationTime: number, api: any): Observable<boolean> {
@@ -263,104 +258,10 @@ export class SketchfabService {
 		);
 	}
 
-	/**
-	 * Runs un every frame update. The render loop
-	 * The model will start to spin after some seconds of idle
-	 */
-	private _onTick(api: any, positionInit: any, targetInit: any, rotAxis: Point) {
-		// we dont always log camera position because of memory leak
-		if (this.logCamera) {
-			//this._updateCamera();
-		}
-
-		this._rotateCamera(api, positionInit, targetInit, rotAxis);
-
-		// Request the next animation frame
-		requestAnimationFrame(() => this._onTick(api, positionInit, targetInit, rotAxis));
-	}
-
-	//when the user click in the 3d space, hide both annotations, descriptions and dropdownmenu
-	private _onClick(camera: any) {
-		this.spinning = false;
-		this.cameraIsMoving = false;
-		this.api.getCameraLookAt((err: any, camera: any) => {
-			console.log("camera: ", camera);
-			const posX = camera.position[0].toFixed(3);
-			const posY = camera.position[1].toFixed(3);
-			const posZ = camera.position[2].toFixed(3);
-
-			const targX = camera.target[0].toFixed(3);
-			const targY = camera.target[1].toFixed(3);
-			const targZ = camera.target[2].toFixed(3);
-			console.log("camera.position: ", posX, " ", posY, " ", posZ);
-			console.log("camera.target: ", targX, " ", targY, " ", targZ);
-		});
-		//console.clear()
-	}
-
-	// Probably delete this
-	private _updateCamera() {
-		this.api.getCameraLookAt((err: any, camera: any) => {
-			return camera;
-		});
-	}
-
-	// Function to rotate the camera around
-	_rotateCamera(api: any, positionInit: any, targetInit: any, rot_axis: { x:number, y:number, z:number }) {
-		this.time = this.frames * (Math.PI / 180); // Convert frames to radians
-
-		this.time = this.time * this.spinVelocity;
-
-		this.radius = this.distance3d(positionInit, targetInit);
-
-		// {x(t),y(t)}={rcosθ,rsinθ}
-		// Determine which axis to rotate around (initiated in the wp-post)
-		if (rot_axis.x > 0) {
-			// Does not rotate around the axis correctly
-			// Might depends on the models orbit transformation or how the camera targetInit coordinates was set
-			this.initAngle = Math.acos(positionInit[1] / this.radius);
-			this.x = positionInit[0];
-			this.y = this.radius * Math.cos(this.initAngle + this.time) + targetInit[0];
-			this.z = this.radius * Math.sin(this.initAngle + this.time) + targetInit[2]; // Rotates camera from helmet to feet
-		} else if (rot_axis.y > 0) {
-			this.initAngle = Math.acos(positionInit[0] / this.radius);
-			this.x = this.radius * Math.cos(this.initAngle + this.time) + targetInit[1];
-			this.y = positionInit[1];
-			this.z = this.radius * Math.sin(this.initAngle + this.time) + targetInit[2];
-		} else {
-			// Default y-axis rotation
-			this.initAngle = Math.acos(positionInit[0] / this.radius);
-			this.x = this.radius * Math.cos(this.initAngle + this.time) + targetInit[0]; // rotates camera from left to right arm of the model
-			this.y = this.radius * Math.sin(this.initAngle + this.time) + targetInit[1]; // moves camera forward and backwards on the z-axis
-			this.z = positionInit[2];
-		}
-
-		this.frames++;
-
-		// make the model spinn
-		if (this.spinning) {
-			this.cameraIsMoving = true;
-			//[eye], [target], animation
-			api.lookat([this.x, this.y, this.z], targetInit, 0.00);
-		}
-	}
-
-	/**
-    * Private function
-    */
-	private distance3d(pointA: Array<number>, pointB: Array<number>) {
-		const dx = pointB[0] - pointA[0];
-		const dy = pointB[1] - pointA[1];
-		const dz = pointB[2] - pointA[2];
-
-		return Math.sqrt(dx * dx + dy * dy + dz * dz);
-	}
-
-	//could either set this in meta data but it is simpler for the user to let the getCameraLookAt do on init instead
+	// could either set this in meta data but it is simpler for the user to let the getCameraLookAt do on init instead
 	// setting matrix in wordpress is not fun
-	public _setCamera(api: any) {
-
-		this.api.getCameraLookAt(async (err: any, camera: Camera) => {
+	public _setCamera() {
+		this.api.getCameraLookAt(async (_err: any, camera: Camera) => {
 			this.camera.positionInit = await camera.position;
 			this.camera.targetInit = camera.target;
 		});
@@ -373,7 +274,13 @@ export class SketchfabService {
 		api.setEnvironment({ rotation: states[3].rotation });
 	}
 
-	public setInitCameraPos(currentIframe: number, cameraPositionInit: number[], cameraTargetInit: number[], api: any, resetModelTime: number): Observable<string> {
+	public setInitCameraPos(
+		currentIframe: number,
+		cameraPositionInit: number[],
+		cameraTargetInit: number[],
+		api: any,
+		resetModelTime: number,
+	): Observable<string> {
 		this.frames = 0.0; // To reset the frames, otherwise an old frame will be rendered when user select the model next time
 		this.timer = 0; // Reset the timer
 		this.cameraIsMoving = false;
@@ -389,7 +296,6 @@ export class SketchfabService {
 				return of('debug');
 			}),
 		);
-
 	}
 
 	public setHDtexture(api: any): Observable<boolean> {
@@ -412,5 +318,99 @@ export class SketchfabService {
 				observer.complete();
 			}),
 		);
+	}
+
+	private onError(e: any) {
+		console.log('Viewer error', e);
+	}
+
+	/**
+	 * Runs un every frame update. The render loop
+	 * The model will start to spin after some seconds of idle
+	 */
+	private _onTick(api: any, positionInit: any, targetInit: any, rotAxis: Point) {
+		// we dont always log camera position because of memory leak
+		if (this.logCamera) {
+			// this._updateCamera();
+		}
+
+		this._rotateCamera(api, positionInit, targetInit, rotAxis);
+
+		// Request the next animation frame
+		requestAnimationFrame(() => this._onTick(api, positionInit, targetInit, rotAxis));
+	}
+
+	// when the user click in the 3d space, hide both annotations, descriptions and dropdownmenu
+	private _onClick(camera: any) {
+		this.spinning = false;
+		this.cameraIsMoving = false;
+		this.api.getCameraLookAt((err: any, camera: any) => {
+			console.log('camera: ', camera);
+			const posX = camera.position[0].toFixed(3);
+			const posY = camera.position[1].toFixed(3);
+			const posZ = camera.position[2].toFixed(3);
+
+			const targX = camera.target[0].toFixed(3);
+			const targY = camera.target[1].toFixed(3);
+			const targZ = camera.target[2].toFixed(3);
+			console.log('camera.position: ', posX, ' ', posY, ' ', posZ);
+			console.log('camera.target: ', targX, ' ', targY, ' ', targZ);
+		});
+	}
+
+	// Probably delete this
+	private _updateCamera() {
+		this.api.getCameraLookAt((err: any, camera: any) => camera);
+	}
+
+	// Function to rotate the camera around
+	private _rotateCamera(api: any, positionInit: any, targetInit: any, rotAxis: { x: number; y: number; z: number }) {
+		this.time = this.frames * (Math.PI / 180); // Convert frames to radians
+
+		this.time = this.time * this.spinVelocity;
+
+		this.radius = this.distance3d(positionInit, targetInit);
+
+		// {x(t),y(t)}={rcosθ,rsinθ}
+		// Determine which axis to rotate around (initiated in the wp-post)
+		if (rotAxis.x > 0) {
+			// Does not rotate around the axis correctly
+			// Might depends on the models orbit transformation or how the camera targetInit coordinates was set
+			this.initAngle = Math.acos(positionInit[1] / this.radius);
+			this.x = positionInit[0];
+			this.y = this.radius * Math.cos(this.initAngle + this.time) + targetInit[0];
+			this.z = this.radius * Math.sin(this.initAngle + this.time) + targetInit[2]; // Rotates camera from helmet to feet
+		} else if (rotAxis.y > 0) {
+			this.initAngle = Math.acos(positionInit[0] / this.radius);
+			this.x = this.radius * Math.cos(this.initAngle + this.time) + targetInit[1];
+			this.y = positionInit[1];
+			this.z = this.radius * Math.sin(this.initAngle + this.time) + targetInit[2];
+		} else {
+			// Default y-axis rotation
+			this.initAngle = Math.acos(positionInit[0] / this.radius);
+			this.x = this.radius * Math.cos(this.initAngle + this.time) + targetInit[0]; // rotates camera from left to right arm of the model
+			this.y = this.radius * Math.sin(this.initAngle + this.time) + targetInit[1]; // moves camera forward and backwards on the z-axis
+			this.z = positionInit[2];
+		}
+
+		this.frames++;
+
+		// make the model spinn
+		if (this.spinning) {
+			this.cameraIsMoving = true;
+			// [eye], [target], animation
+			api.lookat([this.x, this.y, this.z], targetInit, 0.00);
+		}
+	}
+
+	/**
+	 * Private function
+	 */
+	private distance3d(pointA: Array<number>, pointB: Array<number>) {
+		const dx = pointB[0] - pointA[0];
+		const dy = pointB[1] - pointA[1];
+		const dz = pointB[2] - pointA[2];
+
+		return Math.sqrt(dx * dx + dy * dy + dz * dz);
 	}
 }

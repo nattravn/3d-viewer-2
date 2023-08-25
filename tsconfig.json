@@ -22,9 +22,14 @@
       "es2020",
       "dom"
     ],
-	"strictPropertyInitialization": false,
-	"allowSyntheticDefaultImports": true,
-	"allowJs": true
+		"paths": {
+			"@viewer/*": ["src/app/viewer/*"],
+			"@enum/*": ["src/app/enum/*"],
+			"@app/*": ["src/app/*"],
+		},
+		"strictPropertyInitialization": false,
+		"allowSyntheticDefaultImports": true,
+		"allowJs": true
   },
   "angularCompilerOptions": {
     "enableI18nLegacyMessageIdFormat": false,

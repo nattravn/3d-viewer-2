@@ -1,4 +1,4 @@
-$menu-scale: 1;
+
 
 h2 {
 	margin-top: 0px;
@@ -20,52 +20,6 @@ h2 {
     justify-content: center;
     align-items: center;
     background-color: rgba(0, 0, 0, 0.562);
-}
-
-.menu-nav {
-	z-index: 1;
-    position: fixed;
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    background: #fff;
-    margin: 0;
-
-	li {
-		list-style: none;
-
-		img {
-			width: 100px;
-			padding: 10px;
-		}
-	}
-
-	&__infoButton{
-		color: black;
-		height: calc(90px * $menu-scale);
-		padding: 0px;
-		height: 120px;
-
-		&--clicked{
-			background-color: #000;
-			color: white;
-		}
-	}
-
-	&__infoButton--clicked{
-		background-color: #000;
-		color: white;
-	}
-
-	&__label{
-		font-size: 100px;
-		font-family: 'Courier New', Courier, monospace;
-		font-weight: bold;
-		height:100%;
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
 }
 
 .viewer {
@@ -113,41 +67,6 @@ h2 {
 				width: 100%;
 				height: 100vh;
 			}
-		}
-	}
-}
-
-.info-block {
-	width: 700px;
-    color: #fff;
-	padding: 15px;
-    background-color: rgba(0, 0, 0, 0.562);
-    z-index: 1000;
-	position: fixed;
-	left: 0;
-	right: 0;
-	margin: auto;
-	top: 50%;
-    transform: translateY(-50%);
-
-	&__language {
-		margin: 45px 0 15px 0;
-		&__selected {
-			text-decoration: underline;
-		}
-	}
-
-	&__panel {
-		display: flex;
-		justify-content: space-between;
-
-		&__cross {
-			max-width: 100px;
-			margin: auto;
-		}
-
-		&__annotation-arrow {
-			max-width: 100px;
 		}
 	}
 }

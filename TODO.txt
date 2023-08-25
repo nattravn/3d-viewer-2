@@ -1,0 +1,5 @@
+Update font style
+
+Remove or implement annotation component
+
+Fix todo comments

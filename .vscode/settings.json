@@ -1,9 +1,31 @@
 {
-	"editor.defaultFormatter": "esbenp.prettier-vscode",
-	//"editor.formatOnSave": true,
-	"editor.formatOnPaste": false,
-	"prettier.tabWidth": 4,
-	// "prettier.useEditorConfig": false,
-	"prettier.trailingComma": "all",
-	"prettier.configPath": ".prettierrc.json"
+	"prettier.configPath": ".prettierrc",
+	"editor.tabSize": 2,
+	"editor.detectIndentation": false,
+  "importSorter.importStringConfiguration.quoteMark": "single",
+	"importSorter.importStringConfiguration.maximumNumberOfImportExpressionsPerLine.count": 120,
+  "importSorter.sortConfiguration.customOrderingRules.rules": [
+    {
+        "type": "importMember",
+        "regex": "^$",
+        "orderLevel": 10,
+        "disableSort": true
+    },
+    {
+        "regex": "@angular",
+        "orderLevel": 20
+    },
+    {
+      "regex": "rxjs|ngx|@ngneat",
+      "orderLevel": 30
+    },
+    {
+      "regex": "@enum|@viewer|@app",
+      "orderLevel": 40
+    },
+    {
+      "regex": "^[.]",
+      "orderLevel": 50
+    },
+  ]
 }

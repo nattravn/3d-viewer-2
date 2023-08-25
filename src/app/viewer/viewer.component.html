@@ -6,7 +6,7 @@
 		viewersReady: viewersReady$ | async,
 		lightStates: sketchfabService.lightStates$ | async,
 		allLoaded: allLoaded$ | async,
-		selectedSketchfabService: selectedSketchfabService$ | async,
+		selectedSketchfabService: sketchfabService.selectedSketchfabService$ | async,
 		sketchfabServices: sketchfabServices$ | async,
 		annotationDescription: annotationDescription$ | async,
 		annotationHeading: annotationHeading$ | async,
@@ -36,131 +36,22 @@
 					*ngIf="
 						source.allLoaded &&
 						(source.selectedSketchfabService?.textureQuality$ | async) === 'LD' &&
-						source.selectedSketchfabService!.modelIndex === i
+						source.selectedSketchfabService?.modelIndex === i
 					"
 					class="load-texture-layer"
 				></div>
 
 				<div class="sketchfab-embed-wrapper">
-					<iframe #viewerRef src="" frameborder="0" allowfullscreen="" mozallowfullscreen="true"></iframe>
+					<iframe id="viewerRef-{{ i }}" #viewerRef src="" frameborder="0" allowfullscreen="" mozallowfullscreen="true"></iframe>
 				</div>
 			</li>
 		</ul>
 	</div>
 
 	<!-- Menu -->
-	<ul class="menu-nav" *ngIf="source.selectedSketchfabService && source.selectedLanguage">
-		<li *ngFor="let sketchfabServiceNext of source.sketchfabServices; let i = index">
-			<!-- Texture quality: {{sketchfabServiceNext.textureQuality$ | async}} -->
-			<img
-				*ngIf="sketchfabServiceNext && source.selectedSketchfabService"
-				[asyncClick]="selectModel$.bind(this, source.selectedSketchfabService, sketchfabServiceNext, source.selectedLanguage)"
-				src="{{ sketchfabServiceNext.imageUrl }}"
-				fallback="/assets/{{ sketchfabServiceNext.slug }}.png"
-				alt="{{ baseUrl }}/wp-content/uploads/{{ sketchfabServiceNext.slug }}.png"
-			/>
-		</li>
-		<li>
-			<button
-				[asyncClick]="
-					resetModel$.bind(
-						this,
-						source.selectedSketchfabService.api,
-						source.selectedSketchfabService.lightStates,
-						source.selectedSketchfabService,
-						source.selectedLanguage
-					)
-				"
-			>
-				<img src="/assets/reset.png" alt="" />
-			</button>
-			<!-- <img src="/assets/reset.png" alt=""> -->
-		</li>
-		<li class="menu-nav__infoButton" [ngClass]="{ 'menu-nav__infoButton--clicked': annotationBlockIsVisible }">
-			<div
-				class="menu-nav__label"
-				(click)="showAnnotationBlock(annotationBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)"
-			>
-				i
-			</div>
-		</li>
-		<li class="menu-nav__infoButton" [ngClass]="{ 'menu-nav__infoButton--clicked': infoBlockIsVisible }">
-			<div class="menu-nav__label" (click)="showInfoBlock(infoBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)">?</div>
-		</li>
-	</ul>
+	<ng-container *ngIf="source.sketchfabServices">
+		<app-menu [sketchfabServices]="source.sketchfabServices"></app-menu>
+	</ng-container>
 
-	<!-- Annotation box -->
-	<!-- TODO move this to separate component, crate viewer service -->
-	<div *ngIf="annotationBlockIsVisible && source.selectedSketchfabService && source.selectedLanguage" class="info-block">
-		<h2>{{ source.annotationHeading }}</h2>
-		<p>
-			{{ source.annotationDescription }}
-		</p>
-
-		<div class="info-block__language">
-			<span
-				(click)="toggleLanguage(source.selectedSketchfabService.annotations[selectedAnnotation].swedish, 'swedish')"
-				[ngClass]="{ 'info-block__language__selected': source.selectedLanguage === 'swedish' }"
-			>
-				Svenska
-			</span>
-			/
-			<span
-				(click)="toggleLanguage(source.selectedSketchfabService.annotations[selectedAnnotation].english, 'english')"
-				[ngClass]="{ 'info-block__language__selected': source.selectedLanguage === 'english' }"
-			>
-				Engelska
-			</span>
-		</div>
-
-		<div class="info-block__panel">
-			<button [asyncClick]="previousAnnotation$.bind(this, source.selectedSketchfabService, source.selectedLanguage)">
-				<img src="assets/arrow_left.png" class="info-block__panel__annotation-arrow" />
-			</button>
-
-			<img
-				(click)="showAnnotationBlock(annotationBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)"
-				src="assets/cross_middle.png"
-				class="info-block__panel__cross"
-			/>
-
-			<button [asyncClick]="nextAnnotation$.bind(this, source.selectedSketchfabService, source.selectedLanguage)">
-				<img src="assets/arrow_right.png" class="info-block__panel__annotation-arrow" />
-			</button>
-		</div>
-	</div>
-
-	<!-- Info box -->
-	<div *ngIf="infoBlockIsVisible && source.selectedSketchfabService && source.helpInfoText && source.selectedLanguage" class="info-block">
-		<h2>{{ source.helpInfoHeading }}</h2>
-		<p [innerText]="source.helpInfoText"></p>
-
-		<div class="info-block__language">
-			<span
-				(click)="toggleLanguage(source.selectedSketchfabService.helpInfo.swedish, 'swedish')"
-				[ngClass]="{ 'info-block__language__selected': source.selectedLanguage === 'swedish' }"
-			>
-				Svenska
-			</span>
-			/
-			<span
-				(click)="toggleLanguage(source.selectedSketchfabService.helpInfo.english, 'english')"
-				[ngClass]="{ 'info-block__language__selected': source.selectedLanguage === 'english' }"
-			>
-				Engelska
-			</span>
-		</div>
-
-		<div class="info-block__panel">
-			<img
-				(click)="showInfoBlock(infoBlockIsVisible, source.selectedSketchfabService, source.selectedLanguage)"
-				src="assets/cross_middle.png"
-				class="info-block__panel__cross"
-			/>
-		</div>
-	</div>
-
-	<app-menu></app-menu>
-
-	<app-annotation-nav></app-annotation-nav>
+	<!-- <app-annotation-nav></app-annotation-nav> -->
 </ng-container>

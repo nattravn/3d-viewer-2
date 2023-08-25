@@ -1,96 +1,202 @@
-// https://dev.to/eneajaho/configure-prettier-and-eslint-with-angular-526c
-// https://stackoverflow.com/questions/44690308/whats-the-difference-between-prettier-eslint-eslint-plugin-prettier-and-eslint
-// https://awesomejs.dev/for/eslint/pkg/253365902170391042/
-
-// https://dev.to/bzvyagintsev/migrate-angular-app-to-eslint-with-prettier-airbnb-styleguide-husky-and-lint-staged-862
-// You can not have any warnings/errors to get linting to work!!
 {
 	"root": true,
-	"ignorePatterns": ["projects/**/*"],
+	"ignorePatterns": [
+		"projects/**/*"
+	],
 	"overrides": [
 		{
-			"files": ["*.ts"],
+			"files": [
+				"*.ts"
+			],
+			"parser": "@typescript-eslint/parser",
 			"parserOptions": {
 				"project": [
 					"tsconfig.json",
-					"tsconfig.*?.json"
+					"e2e/tsconfig.json"
 				],
-				"createDefaultProgram": true
+				"sourceType": "module",
+				"createDefaultProgram": true,
+				"tsconfigRootDir": "./"
 			},
+			"plugins": [
+				"eslint-plugin-import",
+				"@angular-eslint/eslint-plugin",
+				"@typescript-eslint"
+				// "prettier"
+			],
 			"extends": [
-				// säger ifrån om let/var/const
-				"plugin:@typescript-eslint/recommended",
-				// is better written in dot notation (dot-notation)
-				"airbnb-typescript/base",
-				// För att kunna sätta regeler på import
-				"plugin:import/recommended",
 				"plugin:@angular-eslint/recommended",
-  				"plugin:@angular-eslint/template/process-inline-templates"
-				// Formatering, semikolon, sigle quote, trailin comma
-  				// Settings for Prettier
- 	 			//"plugin:prettier/recommended"
-				//"prettier"
+				// AirBnB Styleguide rules
+				// "airbnb-typescript/base",
+				// Settings for Prettier
+				"prettier"
 			],
 			"rules": {
-				/**
-				 * Any TypeScript source code (NOT TEMPLATE) related rules you wish to use/reconfigure over and above the
-				 * recommended set provided by the @angular-eslint project would go here.
-				 */
-				"@angular-eslint/directive-selector": [
+				"prettier/prettier": [
 					"error",
 					{
-						"type": "attribute",
-						"prefix": "app",
-						"style": "camelCase"
+						"printWidth": 125,
+						"tabWidth": 2,
+						"semi": true,
+						"singleQuote:": true,
+						"trailingComma": "all", // other options `es5` or `all`
+						"bracketSpacing": true,
+						"arrowParens": "always", // other option "always"
+						"htmlWhitespaceSensitivity": "ignore",
+						"endOfLine": "auto",
+						"useTabs": true,
+						"bracketSameLine": true
 					}
 				],
-				"@angular-eslint/component-selector": [
-					"error",
-					{
-						"type": "element",
-						"prefix": "app",
-						"style": "kebab-case"
-					}
-				],
-				"import/no-unresolved": "off",
-				"import/prefer-default-export": "off",
-				"class-methods-use-this": "off",
-				"lines-between-class-members": "off",
-				"@typescript-eslint/unbound-method": [
-					"error",
-					{
-						"ignoreStatic": true
-					}
-				],
+				// https://github.com/lubkoKuzenko/angular-clean-code
+
+				"semi": ["error", "always"],
+				"arrow-parens": ["error", "always"],
+				"@angular-eslint/directive-selector": ["error", { "type": "attribute", "prefix": "app", "style": "camelCase"}],
+				"@angular-eslint/component-selector": ["error", { "type": "element", "prefix": "app", "style": "kebab-case"}],
 				"prefer-template": ["error"],
-				"space-in-parens": ["error", "never"],
-				"array-bracket-spacing": ["error", "never"],
+				"space-in-parens": ["error","never"],
+				"array-bracket-spacing": ["error","never"],
 				"space-infix-ops": "error",
-				"object-curly-spacing": ["error", "always"],
-				"@typescript-eslint/indent": ["error", "tab"],
-				"block-spacing": ["error", "always"]
-				//"quotes": ["warn", "double"],
-				//"comma-dangle": [2, "always-multiline"],
-				//"comma-dangle": ["error", "always"],
-				// "no-extra-semi": ["error"],
-				// "indent": ["error", "tab"]
-				// "useTabs": 0
-				//"indent": ["error", 4]
-				// "singleQuote": true,
-				// "semi": 1,
-				// "bracketSpacing": true,
-				// "arrowParens": "avoid",
-				// "trailingComma": "es5",
-				// "bracketSameLine": true,
-				// "printWidth": 80,
-				// "endOfLine": "auto"
-				//"quotes": [2, "single", { "avoidEscape": true }]
-				// "prettier/prettier": [
-				// 	"error",
-				// 	{
-				// 		"endOfLine": "auto"
-				// 	}
-				// ]
+				"@angular-eslint/component-class-suffix": "error",
+				"@angular-eslint/directive-class-suffix": "error",
+				"@angular-eslint/no-input-rename": "error",
+				"@angular-eslint/no-output-on-prefix": "error",
+				"@angular-eslint/no-output-rename": "error",
+				"@angular-eslint/use-pipe-transform-interface": "error",
+				"@typescript-eslint/consistent-type-definitions": "error",
+				"@typescript-eslint/dot-notation": "off",
+				"@typescript-eslint/naming-convention": [
+					"error",
+					{
+						"selector": "property",
+						"modifiers": ["readonly"],
+						"format": ["UPPER_CASE"]
+					}
+				],
+				"@typescript-eslint/explicit-member-accessibility": [
+          "error",
+          {
+            "accessibility": "explicit",
+            "overrides": {
+              "accessors": "off",
+              "constructors": "no-public",
+              "methods": "explicit",
+              "properties": "explicit",
+              "parameterProperties": "explicit"
+            },
+						"ignoredMethodNames": ["ngOnInit", "canActivate", "transform", "ngAfterContentChecked", "ngAfterViewInit", "ngOnDestroy", "ViewChildren"],
+						"ignoredPropertyNames": ["@ViewChild"]
+          }
+        ],
+				"@typescript-eslint/member-ordering": [
+						"error",
+						{
+							"default": [
+									"public-static-field",
+									"protected-static-field",
+									"private-static-field",
+									"public-instance-field",
+									"protected-instance-field",
+									"private-instance-field",
+									"constructor",
+									"public-instance-method",
+									"protected-instance-method",
+									"private-instance-method",
+									"public-static-method",
+									"protected-static-method",
+									"private-static-method",
+									"public-static-get",
+									"protected-static-get",
+									"private-static-get"
+							]
+						}
+					],
+				"@typescript-eslint/no-empty-function": "off",
+				"@typescript-eslint/no-empty-interface": "error",
+				"@typescript-eslint/no-inferrable-types": [
+					"error",
+					{
+						"ignoreParameters": true
+					}
+				],
+				"@typescript-eslint/no-misused-new": "error",
+				"@typescript-eslint/no-non-null-assertion": "error",
+				"@typescript-eslint/no-unused-expressions": "error",
+				"@typescript-eslint/prefer-function-type": "error",
+				"@typescript-eslint/quotes": ["error", "single"],
+				"@typescript-eslint/unified-signatures": "error",
+				"arrow-body-style": "error",
+				"constructor-super": "error",
+				"eqeqeq": ["error", "smart"],
+				"guard-for-in": "error",
+				"id-blacklist": "off",
+				"id-match": "off",
+				"import/no-deprecated": "warn",
+				"no-bitwise": "error",
+				"no-caller": "error",
+				"no-console": [
+					"error",
+					{
+						"allow": [
+							"log",
+							"dirxml",
+							"warn",
+							"error",
+							"dir",
+							"timeLog",
+							"assert",
+							"clear",
+							"count",
+							"countReset",
+							"group",
+							"groupCollapsed",
+							"groupEnd",
+							"table",
+							"Console",
+							"markTimeline",
+							"profile",
+							"profileEnd",
+							"timeline",
+							"timelineEnd",
+							"timeStamp",
+							"context"
+						]
+					}
+				],
+				"no-debugger": "error",
+				"no-empty": "off",
+				"no-eval": "error",
+				"no-fallthrough": "error",
+				"no-new-wrappers": "error",
+				"no-restricted-imports": [
+					"error",
+					{
+						"paths": ["rxjs/Rx"],
+						"patterns": ["rxjs/(?!operators|testing)"]
+					}
+				],
+				"no-shadow": [
+					"error",
+					{
+						"hoist": "all"
+					}
+				],
+				"no-throw-literal": "error",
+				"no-undef-init": "error",
+				"no-underscore-dangle": "off",
+				"no-unused-labels": "error",
+				"no-var": "error",
+				"prefer-const": "error",
+				"radix": "error",
+				"spaced-comment": [
+					"error",
+					"always",
+					{
+						"markers": ["/"]
+					}
+				],
+				"indent": "off"
 			}
 		},
 		{
@@ -111,7 +217,13 @@
 			"extends": ["plugin:prettier/recommended"],
 			"rules": {
 				// NOTE: WE ARE OVERRIDING THE DEFAULT CONFIG TO ALWAYS SET THE PARSER TO ANGULAR (SEE BELOW)
-				"prettier/prettier": ["error", { "parser": "angular" }]
+				"prettier/prettier": [
+					"error", { 
+						"parser": "angular",
+						"printWidth": 140,
+						"endOfLine": "auto"
+					}
+				]
 			}
 		}
 	]

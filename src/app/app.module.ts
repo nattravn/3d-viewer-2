@@ -7,18 +7,9 @@ import { AppComponent } from './app.component';
 import { ViewerModule } from './viewer/viewer.module';
 
 @NgModule({
-	declarations: [
-		AppComponent,
-	],
-	imports: [
-		BrowserModule,
-		AppRoutingModule,
-		ViewerModule,
-		HttpClientModule,
-	],
-	providers: [
-
-	],
+	declarations: [AppComponent],
+	imports: [BrowserModule, AppRoutingModule, ViewerModule, HttpClientModule],
+	providers: [],
 	bootstrap: [AppComponent],
 })
 export class AppModule { }
