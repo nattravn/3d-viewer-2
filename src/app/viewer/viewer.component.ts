@@ -26,7 +26,7 @@ import { WpPostModel } from '@app/models/wp-post.model';
 import { InfoBox } from '@app/models/info-box-content.model';
 import { LanguageEnum } from '@enum/language.enum';
 
-import { SketchfabService } from '../services/sketchfab.service';
+import { ApiService } from '../services/api.service';
 import { WordpressService } from '../services/wordpress.service';
 
 export type Language = LanguageEnum.english | LanguageEnum.swedish;
@@ -65,7 +65,7 @@ export class ViewerComponent implements OnInit, OnDestroy {
 
 	public selectedAnnotation = 0;
 
-	public sketchfabServices$: Observable<SketchfabService[]>;
+	public sketchfabServices$: Observable<ApiService[]>;
 
 	private startSpinningInterval$ = new BehaviorSubject<boolean>(true);
 
@@ -78,7 +78,7 @@ export class ViewerComponent implements OnInit, OnDestroy {
 
 	constructor(
 		public wordpressService: WordpressService,
-		public sketchfabService: SketchfabService,
+		public sketchfabService: ApiService,
 
 		private https: HttpClient,
 	) {}
@@ -91,54 +91,54 @@ export class ViewerComponent implements OnInit, OnDestroy {
 			delay(1),
 			take(1),
 			switchMap((posts: WpPostModel[]) => {
-				const sketchfabServices$: Array<Observable<SketchfabService>> = [];
+				const apiServices$: Array<Observable<ApiService>> = [];
 
 				posts.forEach((post, i) => {
-					const sketchfabService = this.initWPpostData(post, i);
-					sketchfabServices$.push(of(sketchfabService));
+					const apiService = this.instantiateApis(post, i);
+					apiServices$.push(of(apiService));
 				});
 
-				return combineLatest(sketchfabServices$);
+				return combineLatest(apiServices$);
 			}),
-			switchMap((resolvedSketchfabServices) => {
+			switchMap((resolvedApiServices) => {
 				const apireadyArray$: Array<Observable<boolean>> = [];
 
-				resolvedSketchfabServices.forEach((sketchfabService) => {
+				resolvedApiServices.forEach((sketchfabService) => {
 					apireadyArray$.push(sketchfabService.apiready$);
 				});
 				return combineLatest(apireadyArray$).pipe(
 					filter((apireadyArray) => (apireadyArray.every((elem) => elem) ? true : false)),
-					map(() => resolvedSketchfabServices),
+					map(() => resolvedApiServices),
 				);
 			}),
 			takeUntil(this.allLoaded$),
-			switchMap((viewers: SketchfabService[]) => {
+			switchMap((apiServices: ApiService[]) => {
 				// start next viewer after the previous ar done (serially)
-				this.viewersReady$.next(`Models loading: 0/${viewers.length} loaded`);
+				this.viewersReady$.next(`Models loading: 0/${apiServices.length} loaded`);
 				// Should this be included in the chain instead?
-				viewers[0].api.start();
+				apiServices[0].api.start();
 
 				// TODO Not working texture will still be LD, must update the frame in some way
-				return viewers[0].setHDtexture(viewers[0].api).pipe(
+				return apiServices[0].setHDtexture(apiServices[0].api).pipe(
 					filter((texture) => texture),
 					switchMap(() => {
 						// TODO other solution than next outside service
-						this.sketchfabService.selectedSketchfabService$.next(viewers[0]);
+						this.sketchfabService.selectedSketchfabService$.next(apiServices[0]);
 
-						viewers.forEach((viewer: any, i: number) => {
+						apiServices.forEach((viewer: any, i: number) => {
 							viewer.api.addEventListener('viewerready', () => {
 								// viewer.api.start();
-								if (i < viewers.length - 1) {
-									this.viewersReady$.next(`Models loading: ${i + 1}/${viewers.length} loaded`);
-									viewers[i + 1].api.start();
+								if (i < apiServices.length - 1) {
+									this.viewersReady$.next(`Models loading: ${i + 1}/${apiServices.length} loaded`);
+									apiServices[i + 1].api.start();
 								} else {
 									this.allLoaded$.next(true);
 									this.allLoaded$.complete();
-									this.viewersReady$.next(`Models loading: ${i + 1}/${viewers.length} loaded`);
+									this.viewersReady$.next(`Models loading: ${i + 1}/${apiServices.length} loaded`);
 								}
 							});
 						});
-						return of(viewers);
+						return of(apiServices);
 					}),
 				);
 			}),
@@ -161,7 +161,10 @@ export class ViewerComponent implements OnInit, OnDestroy {
 						selectedSketchfabService.timer > this.INTERVAL_STEP
 					) {
 						// FIXME selectedSketchfabService.lightStates is only loaded after some seconds
-						selectedSketchfabService.setLights(selectedSketchfabService.api, selectedSketchfabService.lightStates);
+						selectedSketchfabService.setLights(
+							selectedSketchfabService.api,
+							selectedSketchfabService.lightStates,
+						);
 						this.startSpinningInterval$.next(false);
 						this.infoBlockIsVisible = false;
 						this.annotationBlockIsVisible = false;
@@ -208,12 +211,19 @@ export class ViewerComponent implements OnInit, OnDestroy {
 		this.untilDestroyed$.complete();
 	}
 
-	public stopSpinning(sketchfabService: SketchfabService) {
+	public stopSpinning(sketchfabService: ApiService) {
 		sketchfabService.spinning = false;
 		this.showClickableLayer$.next(false);
 	}
 
-	private initWPpostData(post: WpPostModel, index: number): SketchfabService {
+	/**
+	 * Because it takes to much time (and you will se the sketchfab's progress bar) when a single scene (one API client) is used where models uri's will just be updated.
+	 * We are instead instantiate multiple API clients
+	 * @param post WpPostModel fetched from backend
+	 * @param index To set an id/index of each model
+	 * @returns ApiService
+	 */
+	private instantiateApis(post: WpPostModel, modelIndex: number): ApiService {
 		const annotations = new Array<Annotation>();
 
 		post.post_meta_fields.swe_description.forEach((sweDescription, i) => {
@@ -251,19 +261,20 @@ export class ViewerComponent implements OnInit, OnDestroy {
 			annotations: annotations,
 			helpInfo: helpInfo,
 			slug: post.slug,
-			modelIndex: index,
+			modelIndex: modelIndex,
 		};
 
-		const iframe = this.viewerRef.get(index)?.nativeElement;
+		const iframe = this.viewerRef.get(modelIndex)?.nativeElement;
 
-		const sketchfabServices = new SketchfabService(sketchFabModelData);
+		// instantiate new sketchfab API clients
+		const apiService = new ApiService(sketchFabModelData);
 
 		if (iframe) {
-			sketchfabServices.init(iframe, post.post_meta_fields.model_id, 0);
+			apiService.init(iframe, post.post_meta_fields.model_id, 0);
 		} else {
 			console.error('iframe element is: ', iframe);
 		}
 
-		return sketchfabServices;
+		return apiService;
 	}
 }

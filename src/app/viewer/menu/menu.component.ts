@@ -1,13 +1,4 @@
-import {
-	ChangeDetectionStrategy,
-	Component,
-	ElementRef,
-	Input,
-	OnInit,
-	QueryList,
-	ViewChild,
-	ViewChildren,
-} from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, OnInit } from '@angular/core';
 
 import {
 	BehaviorSubject,
@@ -24,7 +15,7 @@ import {
 } from 'rxjs';
 
 import { InfoBoxContent } from '@app/models/info-box-content.model';
-import { SketchfabService } from '@app/services/sketchfab.service';
+import { ApiService } from '@app/services/api.service';
 import { LanguageEnum } from '@enum/language.enum';
 import { Language, ViewerComponent } from '@viewer/viewer.component';
 
@@ -36,7 +27,7 @@ import { Language, ViewerComponent } from '@viewer/viewer.component';
 })
 export class MenuComponent implements OnInit {
 	// eslint-disable-next-line @typescript-eslint/explicit-member-accessibility
-	@Input() sketchfabServices: SketchfabService[] | null;
+	@Input() sketchfabServices: ApiService[] | null;
 
 	public readonly BASE_URL = 'http://localhost:8080/wordpress/';
 
@@ -68,7 +59,7 @@ export class MenuComponent implements OnInit {
 	 */
 	private untilDestroyed$ = new Subject<boolean>();
 
-	constructor(public sketchfabService: SketchfabService) {}
+	constructor(public sketchfabService: ApiService) {}
 	ngOnInit(): void {
 		if (this.sketchfabServices) {
 			this.sketchfabService.selectedSketchfabService$.next(this.sketchfabServices[0]);
@@ -76,8 +67,8 @@ export class MenuComponent implements OnInit {
 	}
 
 	public selectModel$(
-		sketchfabServicePrev: SketchfabService,
-		sketchfabServiceNext: SketchfabService,
+		sketchfabServicePrev: ApiService,
+		sketchfabServiceNext: ApiService,
 		selectedLanguage: Language,
 	): Observable<boolean> {
 		sketchfabServicePrev.spinning = false;
@@ -112,8 +103,12 @@ export class MenuComponent implements OnInit {
 								filter((texture) => texture),
 								tap(() => {
 									console.log('Texture loaded hd');
-									this.annotationDescription$.next(sketchfabServiceNext.annotations[0][selectedLanguage].description);
-									this.annotationHeading$.next(sketchfabServiceNext.annotations[0][selectedLanguage].heading);
+									this.annotationDescription$.next(
+										sketchfabServiceNext.annotations[0][selectedLanguage].description,
+									);
+									this.annotationHeading$.next(
+										sketchfabServiceNext.annotations[0][selectedLanguage].heading,
+									);
 
 									return true;
 								}),
@@ -126,7 +121,7 @@ export class MenuComponent implements OnInit {
 
 	public showAnnotationBlock(
 		annotationBlockIsVisible: boolean,
-		selectedSketchfabService: SketchfabService,
+		selectedSketchfabService: ApiService,
 		selectedLanguage: Language,
 	): void {
 		// this.stopSpinning(selectedSketchfabService);
@@ -134,12 +129,14 @@ export class MenuComponent implements OnInit {
 		this.annotationDescription$.next(
 			selectedSketchfabService.annotations[this.selectedAnnotation][selectedLanguage].description,
 		);
-		this.annotationHeading$.next(selectedSketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
+		this.annotationHeading$.next(
+			selectedSketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading,
+		);
 		this.annotationBlockIsVisible = annotationBlockIsVisible ? false : true;
 		this.infoBlockIsVisible = false;
 	}
 
-	public showInfoBlock(infoBlockIsVisible: boolean, selectedSketchfabService: SketchfabService, selectedLanguage: Language) {
+	public showInfoBlock(infoBlockIsVisible: boolean, selectedSketchfabService: ApiService, selectedLanguage: Language) {
 		this.helpInfoHeading$.next(selectedSketchfabService.helpInfo[selectedLanguage].heading);
 		this.helpInfoText$.next(selectedSketchfabService.helpInfo[selectedLanguage].description);
 		this.infoBlockIsVisible = infoBlockIsVisible ? false : true;
@@ -156,7 +153,7 @@ export class MenuComponent implements OnInit {
 		this.selectedLanguage$.next(selectedLanguage);
 	}
 
-	public previousAnnotation$(sketchfabService: SketchfabService, selectedLanguage: Language): Observable<boolean> {
+	public previousAnnotation$(sketchfabService: ApiService, selectedLanguage: Language): Observable<boolean> {
 		if (this.selectedAnnotation > 0) {
 			this.selectedAnnotation--;
 		} else {
@@ -167,7 +164,9 @@ export class MenuComponent implements OnInit {
 		sketchfabService.spinning = false;
 		this.showClickableLayer$.next(false);
 
-		this.annotationDescription$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].description);
+		this.annotationDescription$.next(
+			sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].description,
+		);
 		this.annotationHeading$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
 
 		return sketchfabService
@@ -186,7 +185,7 @@ export class MenuComponent implements OnInit {
 			);
 	}
 
-	public nextAnnotation$(sketchfabService: SketchfabService, selectedLanguage: Language): Observable<boolean> {
+	public nextAnnotation$(sketchfabService: ApiService, selectedLanguage: Language): Observable<boolean> {
 		if (this.selectedAnnotation < sketchfabService.annotations.length - 1) {
 			this.selectedAnnotation++;
 		} else {
@@ -197,7 +196,9 @@ export class MenuComponent implements OnInit {
 		sketchfabService.spinning = false;
 		this.showClickableLayer$.next(false);
 
-		this.annotationDescription$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].description);
+		this.annotationDescription$.next(
+			sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].description,
+		);
 		this.annotationHeading$.next(sketchfabService.annotations[this.selectedAnnotation][selectedLanguage].heading);
 
 		return sketchfabService
@@ -219,7 +220,7 @@ export class MenuComponent implements OnInit {
 	public resetModel$(
 		api: any,
 		lightStates: Array<number[]> | null,
-		sketchfabService: SketchfabService,
+		sketchfabService: ApiService,
 		selectedLanguage: Language,
 	): Observable<string> {
 		sketchfabService.spinning = false;

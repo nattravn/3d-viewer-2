@@ -10,7 +10,7 @@ import { SketchFabModelData } from '../models/sketchfab-model-data';
 import { Point } from '../models/point.model';
 
 @Injectable()
-export class SketchfabService {
+export class ApiService {
 	// Public fields
 	public api: any = null;
 
@@ -50,7 +50,7 @@ export class SketchfabService {
 
 	public resetModelTime = 0;
 
-	public selectedSketchfabService$ = new ReplaySubject<SketchfabService>(1);
+	public selectedSketchfabService$ = new ReplaySubject<ApiService>(1);
 
 	// Private fields
 	private orbitPanFactor = 0;
@@ -341,7 +341,7 @@ export class SketchfabService {
 	}
 
 	// when the user click in the 3d space, hide both annotations, descriptions and dropdownmenu
-	private _onClick(camera: any) {
+	private _onClick(thisCamera: any) {
 		this.spinning = false;
 		this.cameraIsMoving = false;
 		this.api.getCameraLookAt((err: any, camera: any) => {
@@ -399,7 +399,7 @@ export class SketchfabService {
 		if (this.spinning) {
 			this.cameraIsMoving = true;
 			// [eye], [target], animation
-			api.lookat([this.x, this.y, this.z], targetInit, 0.00);
+			api.lookat([this.x, this.y, this.z], targetInit, 0.0);
 		}
 	}
 

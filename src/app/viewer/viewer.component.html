@@ -1,18 +1,10 @@
 <ng-container
 	*ngIf="{
 		posts: wordpressService.posts$ | async,
-		apiready: sketchfabService.apiready$ | async,
-		postMetaFields: wordpressService.postMetaFields$ | async,
 		viewersReady: viewersReady$ | async,
-		lightStates: sketchfabService.lightStates$ | async,
 		allLoaded: allLoaded$ | async,
 		selectedSketchfabService: sketchfabService.selectedSketchfabService$ | async,
 		sketchfabServices: sketchfabServices$ | async,
-		annotationDescription: annotationDescription$ | async,
-		annotationHeading: annotationHeading$ | async,
-		selectedLanguage: selectedLanguage$ | async,
-		helpInfoHeading: helpInfoHeading$ | async,
-		helpInfoText: helpInfoText$ | async,
 		showClickableLayer: showClickableLayer$ | async
 	} as source"
 >

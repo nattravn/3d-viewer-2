@@ -6,7 +6,7 @@ import { AsyncClickDirective } from '../directives/async-click.directive';
 import { FallbackImgDirective } from '../directives/my-directive.directive';
 import { SketchFabModelData } from '../models/sketchfab-model-data';
 import { SafeHtmlPipe } from '../pipes/safe-html.pipe';
-import { SketchfabService } from '../services/sketchfab.service';
+import { ApiService } from '../services/api.service';
 import { WordpressService } from '../services/wordpress.service';
 import { AnnotationNavComponent } from './annotation-nav/annotation-nav.component';
 import { MenuComponent } from './menu/menu.component';
@@ -22,6 +22,6 @@ import { ViewerComponent } from './viewer.component';
 		FallbackImgDirective,
 		AsyncClickDirective,
 	],
-	providers: [SketchfabService, WordpressService, SketchFabModelData],
+	providers: [ApiService, WordpressService, SketchFabModelData],
 })
 export class ViewerModule {}

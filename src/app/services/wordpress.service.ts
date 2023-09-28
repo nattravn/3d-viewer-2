@@ -7,12 +7,10 @@ import { PostMetaFields } from '../models/post-meta-fields';
 import { WpPostModel } from '../models/wp-post.model';
 import * as testData from '../../assets/testData.json';
 
-
 @UntilDestroy()
 @Injectable()
 export class WordpressService {
-
-	public posts$ = new Observable<WpPostModel[]>;
+	public posts$ = new Observable<WpPostModel[]>();
 
 	public postMetaFields$ = new ReplaySubject<PostMetaFields[]>(1);
 
@@ -20,17 +18,15 @@ export class WordpressService {
 
 	private apiEndpointJson = '../../assets/testData.json';
 
-	constructor(
-		private http: HttpClient,
-	) { }
+	constructor(private http: HttpClient) {}
 
 	public getPostsFromWp(): Observable<WpPostModel[]> {
 		this.posts$ = this.http.get<WpPostModel[]>(this.apiEndpoint).pipe(
 			untilDestroyed(this),
-			switchMap(posts => {
+			switchMap((posts) => {
 				const postMetaFields: PostMetaFields[] = [];
-				console.log("posts: ", posts);
-				posts.forEach(post => {
+				console.log('posts: ', posts);
+				posts.forEach((post) => {
 					postMetaFields.push(post.post_meta_fields);
 				});
 
@@ -51,13 +47,9 @@ export class WordpressService {
 	public getPostsLocalHttpRequest(): Observable<WpPostModel[]> {
 		this.posts$ = this.http.get<{ posts: WpPostModel[] }>(this.apiEndpointJson).pipe(
 			untilDestroyed(this),
-			switchMap((res) => {
-				return of(res.posts);
-			}),
+			switchMap((res) => of(res.posts)),
 			shareReplay(1),
 		);
 		return this.posts$;
 	}
 }
-
-
